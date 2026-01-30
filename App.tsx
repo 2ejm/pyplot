@@ -28,6 +28,7 @@ const App: React.FC = () => {
   const [fileName, setFileName] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [highlightedTime, setHighlightedTime] = useState<number | null>(null);
   
   // File Sources
   const [sourceType, setSourceType] = useState<'drive' | 'local' | null>(null);
@@ -43,15 +44,43 @@ const App: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
 
+  // Time boundary calculations
+  const timeBoundaries = useMemo(() => {
+    if (allData.length === 0) return { min: 0, max: 0, total: 0 };
+    const min = allData[0].timestamp;
+    const last = allData[allData.length - 1].timestamp;
+    // We allow starting anywhere from min to last. The range input logic will handle the end.
+    return { min, max: Math.max(min, last - duration), total: last - min };
+  }, [allData, duration]);
+
+  // Navigation handlers
+  const scrollBy = useCallback((percent: number) => {
+    const shift = duration * percent;
+    setStartTime(prev => {
+      const next = prev + shift;
+      return Math.min(Math.max(next, timeBoundaries.min), timeBoundaries.max);
+    });
+  }, [duration, timeBoundaries]);
+
+  const jumpToTime = (timeStr: string) => {
+    if (!timeStr || allData.length === 0) return;
+    const [h, m, s = 0] = timeStr.split(':').map(Number);
+    const targetDate = new Date(allData[0].timestamp);
+    targetDate.setHours(h, m, s, 0);
+    const targetTs = targetDate.getTime();
+    
+    const closest = allData.reduce((prev, curr) => 
+      Math.abs(curr.timestamp - targetTs) < Math.abs(prev.timestamp - targetTs) ? curr : prev
+    );
+    setStartTime(Math.min(Math.max(closest.timestamp - duration / 2, timeBoundaries.min), timeBoundaries.max));
+  };
+
   // Robust initialization flow
   const initializeGoogleApi = useCallback(async () => {
     setErrorInfo(null);
     setApiReady(false);
     
     try {
-      console.log("Checking for Google scripts...");
-      
-      // Wait for scripts to be available if they are still loading
       let attempts = 0;
       while ((typeof gapi === 'undefined' || typeof google === 'undefined') && attempts < 10) {
         await new Promise(r => setTimeout(r, 500));
@@ -59,37 +88,30 @@ const App: React.FC = () => {
       }
 
       if (typeof gapi === 'undefined' || typeof google === 'undefined') {
-        throw new Error("Google scripts not loaded. Check your internet or script tags.");
+        throw new Error("Google scripts not loaded.");
       }
 
-      // 1. Load Picker & Client
       await new Promise((resolve, reject) => {
         gapi.load('client:picker', {
           callback: resolve,
           onerror: () => reject(new Error("Failed to load gapi client:picker")),
-          timeout: 5000,
-          ontimeout: () => reject(new Error("GAPI load timeout"))
+          timeout: 5000
         });
       });
       
-      // 2. Init Client
       await gapi.client.init({
         apiKey: process.env.API_KEY,
         discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
       });
 
-      // 3. Init Identity Services (GIS)
-      // Note: You must ensure this Client ID is registered in Google Console for this specific origin
       const client = google.accounts.oauth2.initTokenClient({
         client_id: '754877797743-j9m7i6p0m26p0h48h0r6l8q7n8g7e8p0.apps.googleusercontent.com',
         scope: 'https://www.googleapis.com/auth/drive.readonly',
         callback: (response: any) => {
           if (response.error !== undefined) {
-            console.error("GIS Callback Error:", response);
             setErrorInfo(`Auth Error: ${response.error_description || response.error}`);
             return;
           }
-          console.log("Access token received.");
           setAccessToken(response.access_token);
           createPicker(response.access_token);
         },
@@ -97,10 +119,7 @@ const App: React.FC = () => {
       
       setTokenClient(client);
       setApiReady(true);
-      console.log("Google API Initialized successfully.");
-
     } catch (err: any) {
-      console.error("Initialization Error:", err);
       setErrorInfo(err.message || "Failed to initialize Google API.");
     }
   }, []);
@@ -111,7 +130,6 @@ const App: React.FC = () => {
 
   const createPicker = useCallback((token: string) => {
     if (!token) return;
-
     try {
       const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
         .setIncludeFolders(true)
@@ -134,11 +152,9 @@ const App: React.FC = () => {
         })
         .setTitle("Cloud Repository Explorer")
         .build();
-      
       picker.setVisible(true);
     } catch (err) {
       setErrorInfo("Failed to open file picker.");
-      console.error(err);
     }
   }, []);
 
@@ -165,6 +181,7 @@ const App: React.FC = () => {
   const loadDriveFile = useCallback(async (file: any) => {
     setLoading(true);
     setFileName(file.name);
+    setHighlightedTime(null);
     try {
       const response = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' });
       const parsed = parseLogFile(response.body, DEFAULT_SAMPLE_RATE); 
@@ -180,17 +197,11 @@ const App: React.FC = () => {
 
   const handleDriveClick = () => {
     if (!apiReady) {
-      setErrorInfo("Google API is not ready yet. Retrying initialization...");
       initializeGoogleApi();
       return;
     }
-
     if (!accessToken) {
-      if (tokenClient) {
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-      } else {
-        setErrorInfo("Auth client missing. Please refresh.");
-      }
+      if (tokenClient) tokenClient.requestAccessToken({ prompt: 'consent' });
     } else {
       createPicker(accessToken);
     }
@@ -199,6 +210,7 @@ const App: React.FC = () => {
   const loadLocalFile = useCallback((file: File) => {
     setLoading(true);
     setFileName(file.name);
+    setHighlightedTime(null);
     const reader = new FileReader();
     reader.onload = (e) => {
       const parsed = parseLogFile(e.target?.result as string, DEFAULT_SAMPLE_RATE);
@@ -218,15 +230,15 @@ const App: React.FC = () => {
     if (allData.length === 0) loadLocalFile(validFiles[0]);
   }, [allData.length, loadLocalFile]);
 
-  // Drag & Drop
   const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); dragCounter.current++; if (e.dataTransfer.items?.length > 0) setIsDragging(true); };
   const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); dragCounter.current--; if (dragCounter.current === 0) setIsDragging(false); };
   const handleDrop = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); dragCounter.current = 0; if (e.dataTransfer.files?.length > 0) handleFilesAdded(Array.from(e.dataTransfer.files)); };
 
   const handleAlarmJump = (timestamp: number) => {
-    const jumpTime = timestamp - 10000;
-    const closest = allData.reduce((prev, curr) => Math.abs(curr.timestamp - jumpTime) < Math.abs(prev.timestamp - jumpTime) ? curr : prev);
-    setStartTime(closest.timestamp);
+    setHighlightedTime(timestamp);
+    // Center the alarm in the view
+    const centerStart = timestamp - (duration / 2);
+    setStartTime(Math.min(Math.max(centerStart, timeBoundaries.min), timeBoundaries.max));
   };
 
   const visibleData = useMemo(() => {
@@ -236,7 +248,7 @@ const App: React.FC = () => {
   }, [allData, startTime, duration]);
 
   const handleReset = () => {
-    setAllData([]); setFileName(""); setAvailableLocalFiles([]); setAvailableDriveFiles([]); setSourceType(null);
+    setAllData([]); setFileName(""); setAvailableLocalFiles([]); setAvailableDriveFiles([]); setSourceType(null); setHighlightedTime(null);
   };
 
   return (
@@ -244,7 +256,6 @@ const App: React.FC = () => {
       className="flex flex-col h-screen w-screen bg-gray-50 font-sans selection:bg-indigo-100 text-gray-900 relative"
       onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}
     >
-      {/* Dynamic Error Status Bar */}
       {errorInfo && (
         <div className="absolute top-14 left-0 right-0 z-50 px-6 py-2 bg-red-600 text-white flex items-center justify-between shadow-xl animate-in slide-in-from-top">
           <div className="flex items-center gap-2">
@@ -306,17 +317,78 @@ const App: React.FC = () => {
         ) : allData.length > 0 ? (
           <div className="flex flex-col lg:flex-row h-full gap-3">
             <div className="flex-1 min-h-0 flex flex-col gap-3">
-              <div className="flex-1 min-h-0 bg-white rounded-xl border border-gray-200 p-2 shadow-sm relative overflow-hidden"><LogChart data={visibleData} /></div>
+              <div className="flex-1 min-h-0 bg-white rounded-xl border border-gray-200 p-2 shadow-sm relative overflow-hidden flex flex-col">
+                <div className="flex-1 min-h-0">
+                  <LogChart data={visibleData} highlightedTime={highlightedTime} />
+                </div>
+                
+                {/* TIMELINE SCROLLER */}
+                <div className="mt-2 px-4 py-3 bg-gray-50 border-t border-gray-100 rounded-b-xl flex flex-col gap-2">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">
+                      START: {allData[0].time}
+                    </span>
+                    <span className="text-[9px] font-mono font-black text-indigo-600 uppercase tracking-tighter bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 shadow-sm">
+                      WINDOW POSITION: {new Date(startTime).toLocaleTimeString('en-GB', { hour12: false })}
+                    </span>
+                    <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">
+                      END: {allData[allData.length-1].time}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="flex gap-1">
+                      <button onClick={() => setStartTime(timeBoundaries.min)} className="p-1.5 bg-white border border-gray-200 rounded text-gray-500 hover:bg-gray-100 active:scale-95 transition-all shadow-sm">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg>
+                      </button>
+                      <button onClick={() => scrollBy(-0.25)} className="p-1.5 bg-white border border-gray-200 rounded text-gray-500 hover:bg-gray-100 active:scale-95 transition-all shadow-sm">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
+                      </button>
+                    </div>
+
+                    <div className="flex-1 relative h-6 flex items-center group">
+                      <input 
+                        type="range" 
+                        min={timeBoundaries.min} 
+                        max={timeBoundaries.max} 
+                        value={startTime} 
+                        onChange={(e) => setStartTime(Number(e.target.value))}
+                        className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 hover:accent-indigo-500 transition-all"
+                      />
+                      {/* Visual guide for window size relative to total */}
+                      <div className="absolute top-1/2 -translate-y-1/2 pointer-events-none opacity-10 flex h-full items-center justify-center">
+                         <div className="h-4 bg-indigo-500 rounded border border-indigo-600" style={{ width: `${(duration / timeBoundaries.total) * 100}%` }}></div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-1">
+                      <button onClick={() => scrollBy(0.25)} className="p-1.5 bg-white border border-gray-200 rounded text-gray-500 hover:bg-gray-100 active:scale-95 transition-all shadow-sm">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+                      </button>
+                      <button onClick={() => setStartTime(timeBoundaries.max)} className="p-1.5 bg-white border border-gray-200 rounded text-gray-500 hover:bg-gray-100 active:scale-95 transition-all shadow-sm">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col gap-2">
                   <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest px-1">Precise Jump</span>
                   <div className="flex gap-2">
-                    <input type="time" step="1" value={searchTime} onChange={(e) => setSearchTime(e.target.value)} className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500/20" />
-                    <button onClick={() => {}} className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700">Go</button>
+                    <input 
+                      type="time" 
+                      step="1" 
+                      value={searchTime} 
+                      onChange={(e) => setSearchTime(e.target.value)} 
+                      className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500/20" 
+                    />
+                    <button onClick={() => jumpToTime(searchTime)} className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700">Go</button>
                   </div>
                 </div>
                 <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col gap-2">
-                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest px-1">Scale Config</span>
+                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest px-1">Scale Config (Zoom)</span>
                   <div className="grid grid-cols-5 gap-1">
                     {DURATIONS.map((d) => (
                       <button key={d.value} onClick={() => setDuration(d.value)} className={`py-2 text-[10px] font-black rounded-lg transition-all border ${duration === d.value ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}>{d.label}</button>

@@ -9,8 +9,10 @@ export interface LogEntry {
   oxygen: number;
   airHtLvl: number;
   warmHtLvl: number;
+  waterLvl: number;
   airHtPt100: number;
   humiHtPt100: number;
+  warmHtPt100: number;
   alarmSeq: number;
   alarmCode1: number;
   alarmCode2: number;

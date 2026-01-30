@@ -35,18 +35,25 @@ const FixedAnnotation: React.FC = () => {
       <div className="flex justify-between items-center mb-1.5 pb-1 border-b border-gray-100">
         <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">[ PROBE READOUT ]</span>
         <span className="text-[9px] font-mono font-bold text-gray-600">
-          {/* Ensure 24h format for Probe time */}
           {new Date(data.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
         </span>
       </div>
       <div className="space-y-0">
+        {/* Airtm Airlvl AirPT100 humi waterlvl humipt100 warmlvl warmpT100 skin1 skin2 o2 */}
         <Row label="Air Temp" value={data.airTemp} unit="℃" color="text-red-500" />
+        <Row label="Air Level" value={data.airHtLvl} color="text-sky-500" />
+        <Row label="Air PT100" value={data.airHtPt100} unit="℃" color="text-fuchsia-500" />
+        
+        <Row label="Humidity" value={data.humidity} unit="%" color="text-blue-500" />
+        <Row label="Water Level" value={data.waterLvl} color="text-cyan-500" />
+        <Row label="Humi PT100" value={data.humiHtPt100} unit="℃" color="text-purple-500" />
+        
+        <Row label="Warm Level" value={data.warmHtLvl} color="text-slate-500" />
+        <Row label="Warm PT100" value={data.warmHtPt100} unit="℃" color="text-slate-700" />
+        
         <Row label="Skin 1" value={data.skin1Temp} unit="℃" color="text-orange-500" />
         <Row label="Skin 2" value={data.skin2Temp} unit="℃" color="text-amber-500" />
-        <Row label="Humidity" value={data.humidity} unit="%" color="text-blue-500" />
         <Row label="Oxygen" value={data.oxygen} unit="%" color="text-emerald-500" />
-        <Row label="HT-A PT100" value={data.airHtPt100} color="text-fuchsia-500" />
-        <Row label="HT-H PT100" value={data.humiHtPt100} color="text-purple-500" />
       </div>
     </div>
   );

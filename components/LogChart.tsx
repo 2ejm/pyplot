@@ -1,12 +1,13 @@
 
 import React, { useState, useCallback, memo, useMemo } from 'react';
 import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer, Tooltip
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer, Tooltip, ReferenceLine
 } from 'recharts';
 import { LogEntry, ChartVisibility } from '../types';
 
 interface LogChartProps {
   data: LogEntry[];
+  highlightedTime?: number | null;
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -22,44 +23,39 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 // Initial Constants
-// For Channel L: Min = Offset, Max = Scale + Offset
-const INIT_LEFT_OFFSET = 25;   // V-POS (Starting Min)
-const INIT_LEFT_SCALE = 20;    // V-SCALE (Range from Min)
-// For Channel R: Min = Center - Span, Max = Center + Span
+const INIT_LEFT_OFFSET = 25;   
+const INIT_LEFT_SCALE = 20;    
 const INIT_RIGHT_CENTER = 50;
 const INIT_RIGHT_SPAN = 50.0;
 
-const LogChart: React.FC<LogChartProps> = memo(({ data }) => {
+const LogChart: React.FC<LogChartProps> = memo(({ data, highlightedTime }) => {
   const [visibility, setVisibility] = useState<ChartVisibility>({
     airTemp: true,
+    airHtLvl: true,
+    airHtPt100: true,
+    humidity: true,
+    waterLvl: true,
+    humiHtPt100: true,
+    warmHtLvl: true,
+    warmHtPt100: true,
     skin1Temp: true,
     skin2Temp: true,
-    humidity: true,
     oxygen: true,
-    airHtLvl: true,
-    warmHtLvl: true,
-    airHtPt100: true,
-    humiHtPt100: true,
   });
 
   // LEFT AXIS (Temperature / Oxygen)
   const [leftOffset, setLeftOffset] = useState(INIT_LEFT_OFFSET);
   const [leftScale, setLeftScale] = useState(INIT_LEFT_SCALE);
 
-  // RIGHT AXIS (Humidity / Power)
+  // RIGHT AXIS (Humidity / Levels / PT100s)
   const [rightCenter, setRightCenter] = useState(INIT_RIGHT_CENTER);
   const [rightSpan, setRightSpan] = useState(INIT_RIGHT_SPAN);
 
-  // Precision Rounding Helper to prevent 0.30000000000000004 issues
   const p = (val: number) => Math.round(val * 100) / 100;
 
-  // Dynamic Step for Channel L
   const leftStep = useMemo(() => (leftScale <= 1.0 ? 0.1 : 1.0), [leftScale]);
 
-  // Computed Domains
-  // L-CH: [Offset, Scale + Offset]
   const leftDomain = useMemo<[number, number]>(() => [p(leftOffset), p(leftScale + leftOffset)], [leftOffset, leftScale]);
-  // R-CH: [Center - Span, Center + Span]
   const rightDomain = useMemo<[number, number]>(() => [p(rightCenter - rightSpan), p(rightCenter + rightSpan)], [rightCenter, rightSpan]);
 
   const toggleVisibility = useCallback((dataKey: string) => {
@@ -84,9 +80,14 @@ const LogChart: React.FC<LogChartProps> = memo(({ data }) => {
     activeDot: { r: 4, strokeWidth: 1, fill: '#fff', stroke: '#4f46e5' },
   };
 
+  const highlightedTimeString = useMemo(() => {
+    if (!highlightedTime) return null;
+    const entry = data.find(d => d.timestamp === highlightedTime);
+    return entry ? entry.time : null;
+  }, [highlightedTime, data]);
+
   const formatXAxis = (tickItem: string) => tickItem.split(' ')[0];
 
-  // Button-based Step Control with precision rounding and minimum limit
   const OscBtnControl = ({ 
     label, value, step, onChange, colorClass, icon, minLimit = -500
   }: { 
@@ -121,124 +122,122 @@ const LogChart: React.FC<LogChartProps> = memo(({ data }) => {
     <div className="w-full h-full bg-white flex flex-col p-1 overflow-hidden">
       <div className="flex-1 flex gap-3 min-h-0">
         
-        {/* LEFT CHANNEL PANEL (L-CH) */}
         <div className="flex flex-col items-center justify-center gap-3 px-2 py-3 bg-gray-50/50 rounded-2xl border border-gray-100 shadow-sm min-w-[76px]">
           <div className="text-[7px] font-black text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100 uppercase tracking-tighter mb-1">CH-L</div>
           
           <OscBtnControl 
-            label="SCALE" 
-            step={leftStep} 
-            value={leftScale} 
-            onChange={setLeftScale} 
-            colorClass="text-indigo-600"
-            minLimit={0.1}
+            label="SCALE" step={leftStep} value={leftScale} onChange={setLeftScale} colorClass="text-indigo-600" minLimit={0.1}
             icon={<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 8l8-8 8 8M4 16l8 8 8-8" /></svg>}
           />
           
           <OscBtnControl 
-            label="OFFSET" 
-            step={leftStep} 
-            value={leftOffset} 
-            onChange={setLeftOffset} 
-            colorClass="text-red-500"
+            label="OFFSET" step={leftStep} value={leftOffset} onChange={setLeftOffset} colorClass="text-red-500"
             icon={<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg>}
           />
 
-          <button 
-            onClick={resetLeft}
-            className="mt-2 w-14 py-1 bg-gray-200 hover:bg-red-500 hover:text-white text-gray-500 rounded text-[7px] font-black uppercase transition-all shadow-sm border border-transparent hover:border-red-600"
-          >
-            RESET
-          </button>
+          <button onClick={resetLeft} className="mt-2 w-14 py-1 bg-gray-200 hover:bg-red-500 hover:text-white text-gray-500 rounded text-[7px] font-black uppercase transition-all shadow-sm border border-transparent hover:border-red-600">RESET</button>
         </div>
 
-        {/* MAIN CRT DISPLAY */}
         <div className="flex-1 min-w-0 bg-white relative rounded-xl overflow-hidden border border-gray-100 shadow-inner">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart 
-              data={data} 
-              margin={{ top: 15, right: 10, left: 10, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#f8fafc" vertical={true} />
+            <LineChart data={data} margin={{ top: 15, right: 10, left: 10, bottom: 5 }}>
               <XAxis 
                 dataKey="time" 
-                tickFormatter={formatXAxis}
-                tick={{ fontSize: 8, fill: '#94a3b8', fontWeight: 'bold' }}
-                interval="preserveStartEnd"
-                minTickGap={60}
-                stroke="#f1f5f9"
+                tickFormatter={formatXAxis} 
+                tick={{ fontSize: 8, fill: '#64748b', fontWeight: 'bold' }} 
+                interval="preserveStartEnd" 
+                minTickGap={20} 
+                stroke="#94a3b8" 
               />
+              
               <YAxis 
                 yAxisId="left" 
                 domain={leftDomain} 
-                allowDataOverflow={true}
-                tick={{ fontSize: 9, fill: '#ef4444', fontWeight: 'bold' }}
-                stroke="#ef4444"
-                strokeWidth={0.5}
-                width={65}
+                allowDataOverflow={true} 
+                tickCount={11} 
+                tick={{ fontSize: 9, fill: '#ef4444', fontWeight: 'bold' }} 
+                stroke="#ef4444" 
+                strokeWidth={1} 
+                width={65} 
               />
               <YAxis 
                 yAxisId="right" 
                 orientation="right" 
                 domain={rightDomain} 
-                allowDataOverflow={true}
-                tick={{ fontSize: 9, fill: '#3b82f6', fontWeight: 'bold' }}
-                stroke="#3b82f6"
-                strokeWidth={0.5}
-                width={65}
+                allowDataOverflow={true} 
+                tickCount={11} 
+                tick={{ fontSize: 9, fill: '#3b82f6', fontWeight: 'bold' }} 
+                stroke="#3b82f6" 
+                strokeWidth={1} 
+                width={65} 
               />
               
-              <Tooltip 
-                content={<CustomTooltip />} 
-                isAnimationActive={false}
-                cursor={{ stroke: '#6366f1', strokeWidth: 1, strokeDasharray: '4 4' }}
+              <CartesianGrid 
+                yAxisId="left"
+                strokeDasharray="3 3" 
+                stroke="#cbd5e1" 
+                vertical={true} 
+                horizontal={true} 
+                strokeOpacity={1} 
               />
               
-              <Legend 
-                onClick={(e) => toggleVisibility(e.dataKey as string)}
-                wrapperStyle={{ cursor: 'pointer', fontSize: '9px', fontWeight: '900', paddingTop: '10px' }}
-              />
+              <Tooltip content={<CustomTooltip />} isAnimationActive={false} cursor={{ stroke: '#6366f1', strokeWidth: 1.5, strokeDasharray: '4 4' }} />
+              
+              <Legend onClick={(e) => toggleVisibility(e.dataKey as string)} wrapperStyle={{ cursor: 'pointer', fontSize: '9px', fontWeight: '900', paddingTop: '10px' }} />
 
-              <Line yAxisId="left" type="monotone" dataKey="airTemp" name="AIR" stroke="#ef4444" {...lineProps} hide={!visibility.airTemp} />
+              {highlightedTimeString && (
+                <ReferenceLine 
+                  yAxisId="left" 
+                  x={highlightedTimeString} 
+                  stroke="#ef4444" 
+                  strokeWidth={2} 
+                  /* Fix: Remove invalid 'backgroundColor' property from the label object */
+                  label={{ 
+                    position: 'top', 
+                    value: 'ALARM', 
+                    fill: '#ef4444', 
+                    fontSize: 10, 
+                    fontWeight: '900'
+                  }} 
+                />
+              )}
+
+              {/* REQUESTED ORDER: Airtm Airlvl AirPT100 humi waterlvl humipt100 warmlvl warmpT100 skin1 skin2 o2 */}
+              <Line yAxisId="left" type="monotone" dataKey="airTemp" name="AIR-TM" stroke="#ef4444" {...lineProps} hide={!visibility.airTemp} />
+              <Line yAxisId="right" type="monotone" dataKey="airHtLvl" name="AIR-LVL" stroke="#0ea5e9" {...lineProps} strokeWidth={1} hide={!visibility.airHtLvl} />
+              <Line yAxisId="right" type="monotone" dataKey="airHtPt100" name="AIR-PT100" stroke="#d946ef" {...lineProps} strokeWidth={1} hide={!visibility.airHtPt100} />
+              
+              <Line yAxisId="right" type="monotone" dataKey="humidity" name="HUMI" stroke="#3b82f6" {...lineProps} hide={!visibility.humidity} />
+              <Line yAxisId="right" type="monotone" dataKey="waterLvl" name="WATER-LVL" stroke="#06b6d4" {...lineProps} strokeWidth={1} hide={!visibility.waterLvl} />
+              <Line yAxisId="right" type="monotone" dataKey="humiHtPt100" name="HUMI-PT100" stroke="#a855f7" {...lineProps} strokeWidth={1} hide={!visibility.humiHtPt100} />
+              
+              <Line yAxisId="right" type="monotone" dataKey="warmHtLvl" name="WARM-LVL" stroke="#64748b" {...lineProps} strokeWidth={1} hide={!visibility.warmHtLvl} />
+              <Line yAxisId="right" type="monotone" dataKey="warmHtPt100" name="WARM-PT100" stroke="#475569" {...lineProps} strokeWidth={1} hide={!visibility.warmHtPt100} />
+
               <Line yAxisId="left" type="monotone" dataKey="skin1Temp" name="SKIN1" stroke="#f97316" {...lineProps} hide={!visibility.skin1Temp} />
               <Line yAxisId="left" type="monotone" dataKey="skin2Temp" name="SKIN2" stroke="#eab308" {...lineProps} hide={!visibility.skin2Temp} />
               <Line yAxisId="left" type="monotone" dataKey="oxygen" name="O2" stroke="#22c55e" {...lineProps} hide={!visibility.oxygen} />
-
-              <Line yAxisId="right" type="monotone" dataKey="airHtPt100" name="HT-A" stroke="#d946ef" {...lineProps} strokeWidth={1} hide={!visibility.airHtPt100} />
-              <Line yAxisId="right" type="monotone" dataKey="humiHtPt100" name="HT-H" stroke="#a855f7" {...lineProps} strokeWidth={1} hide={!visibility.humiHtPt100} />
-              <Line yAxisId="right" type="monotone" dataKey="humidity" name="HUM" stroke="#3b82f6" {...lineProps} hide={!visibility.humidity} />
-              <Line yAxisId="right" type="monotone" dataKey="airHtLvl" name="LVL-A" stroke="#0ea5e9" {...lineProps} strokeWidth={1} hide={!visibility.airHtLvl} />
-              <Line yAxisId="right" type="monotone" dataKey="warmHtLvl" name="LVL-W" stroke="#64748b" {...lineProps} strokeWidth={1} hide={!visibility.warmHtLvl} />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
-        {/* RIGHT CHANNEL PANEL (R-CH) */}
         <div className="flex flex-col items-center justify-center gap-3 px-2 py-3 bg-gray-50/50 rounded-2xl border border-gray-100 shadow-sm min-w-[76px]">
           <div className="text-[7px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 uppercase tracking-tighter mb-1">CH-R</div>
           
           <OscBtnControl 
-            label="SCALE" step={5.0} value={rightSpan} 
-            onChange={setRightSpan} colorClass="text-indigo-600"
+            label="SCALE" step={5.0} value={rightSpan} onChange={setRightSpan} colorClass="text-indigo-600"
             icon={<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 8l8-8 8 8M4 16l8 8 8-8" /></svg>}
           />
           
           <OscBtnControl 
-            label="OFFSET" step={1.0} value={rightCenter} 
-            onChange={setRightCenter} colorClass="text-blue-500"
+            label="OFFSET" step={1.0} value={rightCenter} onChange={setRightCenter} colorClass="text-blue-500"
             icon={<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg>}
           />
 
-          <button 
-            onClick={resetRight}
-            className="mt-2 w-14 py-1 bg-gray-200 hover:bg-blue-500 hover:text-white text-gray-500 rounded text-[7px] font-black uppercase transition-all shadow-sm border border-transparent hover:border-blue-600"
-          >
-            RESET
-          </button>
+          <button onClick={resetRight} className="mt-2 w-14 py-1 bg-gray-200 hover:bg-blue-500 hover:text-white text-gray-500 rounded text-[7px] font-black uppercase transition-all shadow-sm border border-transparent hover:border-blue-600">RESET</button>
         </div>
       </div>
       
-      {/* Footer Info */}
       <div className="mt-3 flex items-center justify-between px-4">
          <div className="flex gap-4">
             <div className="flex items-center gap-1.5">
@@ -250,7 +249,7 @@ const LogChart: React.FC<LogChartProps> = memo(({ data }) => {
                <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest leading-none">R-CH: Range [{rightDomain[0].toFixed(1)} to {rightDomain[1].toFixed(1)}]</span>
             </div>
          </div>
-         <p className="text-[7px] font-bold text-gray-300 uppercase tracking-[0.3em]">CH-L: Dynamic Unit (0.1 if Scale &le; 1) • Linked Offset Step</p>
+         <p className="text-[7px] font-bold text-gray-300 uppercase tracking-[0.3em]">MED-ANALYZER BCD Matrix (11 Modalities) • High-Contrast Grey Grid</p>
       </div>
     </div>
   );
