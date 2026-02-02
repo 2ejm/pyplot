@@ -313,7 +313,7 @@ const LogChart: React.FC<LogChartProps> = memo(({ data, highlightedTime }) => {
               <XAxis dataKey="time" tickFormatter={formatXAxis} tick={{ fontSize: 8, fill: '#64748b', fontWeight: 'bold' }} interval="preserveStartEnd" minTickGap={20} stroke="#94a3b8" />
               <YAxis yAxisId="left" domain={leftDomain} allowDataOverflow={true} tickCount={11} tick={{ fontSize: 9, fill: '#ef4444', fontWeight: 'bold' }} stroke="#ef4444" strokeWidth={1} width={65} />
               <YAxis yAxisId="right" orientation="right" domain={rightDomain} allowDataOverflow={true} tickCount={11} tick={{ fontSize: 9, fill: '#3b82f6', fontWeight: 'bold' }} stroke="#3b82f6" strokeWidth={1} width={65} />
-              <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" vertical={true} horizontal={true} strokeOpacity={1} />
+              <CartesianGrid yAxisId="left" strokeDasharray="3 3" stroke="#cbd5e1" vertical={true} horizontal={true} strokeOpacity={1} />
               <Tooltip 
                 content={<CustomTooltip />} 
                 isAnimationActive={false} 
@@ -391,7 +391,7 @@ const LogChart: React.FC<LogChartProps> = memo(({ data, highlightedTime }) => {
                Keyboard Active: {focusContext.channel.toUpperCase()} CH {focusContext.param.toUpperCase()} (Up/Down Arrows)
             </p>
          </div>
-         <p className="text-[7px] font-bold text-gray-300 uppercase tracking-[0.3em]">MED-ANALYZER BCD Matrix (12 Modalities) • High-Contrast Grey Grid</p>
+         <p className="text-[7px] font-bold text-gray-300 uppercase tracking-[0.3em]"></p>
       </div>
     </div>
   );
