@@ -8,7 +8,6 @@ export const bcdToFloat = (bytes: number[], decimalPlaces: number = 2): number =
   if (!bytes || bytes.length === 0) return 0;
   let val = 0;
   for (const b of bytes) {
-    // b >> 4 is high nibble, b & 0x0F is low nibble
     const digit = (Math.floor(b / 16) * 10) + (b % 16);
     val = val * 100 + digit;
   }
@@ -19,7 +18,6 @@ export const parsePacket = (hexList: number[], timeStr: string): LogEntry | null
   try {
     if (hexList.length < 40) return null;
 
-    // Use a fixed date to replicate Python's datetime.replace behavior
     const [h, m, s] = timeStr.split(':').map(Number);
     const date = new Date(2022, 1, 21, h, m, s);
 
@@ -33,10 +31,11 @@ export const parsePacket = (hexList: number[], timeStr: string): LogEntry | null
       oxygen: bcdToFloat(hexList.slice(13, 15), 2),
       airHtLvl: hexList[17],
       warmHtLvl: hexList[18],
-      waterLvl: hexList[19],
+      humiHtLvl: hexList[19], // This is Humidity Heater Power
       airHtPt100: bcdToFloat(hexList.slice(20, 22), 1),
       humiHtPt100: bcdToFloat(hexList.slice(22, 24), 1),
       warmHtPt100: bcdToFloat(hexList.slice(26, 28), 1),
+      waterLvl: hexList[24] || 0, // Assume 24 as Water Level status byte
       alarmSeq: hexList[33],
       alarmCode1: hexList[34],
       alarmCode2: hexList[35],
@@ -59,7 +58,6 @@ export const parseLogFile = (content: string, sampleRate: number = 3): LogEntry[
       const timeStr = parts[0];
       let rawData = parts[1].trim();
 
-      // Remove trailing " and ETX (,03)
       if (rawData.endsWith('"')) rawData = rawData.slice(0, -1);
       if (rawData.endsWith(',03')) rawData = rawData.slice(0, -3);
 
@@ -73,11 +71,9 @@ export const parseLogFile = (content: string, sampleRate: number = 3): LogEntry[
         results.push(entry);
       }
     } catch (e) {
-      // Skip malformed lines
     }
   });
 
-  // Apply sampling rate
   if (sampleRate > 1) {
     return results.filter((_, idx) => idx % sampleRate === 0);
   }

@@ -23,8 +23,8 @@ const FixedAnnotation: React.FC = () => {
 
   const Row = ({ label, value, unit = "", color = "text-gray-900" }: { label: string, value: number | string, unit?: string, color?: string }) => (
     <div className="flex justify-between items-center gap-4 py-0.5 border-b border-gray-50 last:border-0">
-      <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter">{label}</span>
-      <span className={`text-[10px] font-mono font-bold ${color}`}>
+      <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter leading-none">{label}</span>
+      <span className={`text-[9.5px] font-mono font-bold ${color}`}>
         {typeof value === 'number' ? value.toFixed(1) : value}{unit}
       </span>
     </div>
@@ -39,21 +39,22 @@ const FixedAnnotation: React.FC = () => {
         </span>
       </div>
       <div className="space-y-0">
-        {/* Airtm Airlvl AirPT100 humi waterlvl humipt100 warmlvl warmpT100 skin1 skin2 o2 */}
-        <Row label="Air Temp" value={data.airTemp} unit="℃" color="text-red-500" />
-        <Row label="Air Level" value={data.airHtLvl} color="text-sky-500" />
-        <Row label="Air PT100" value={data.airHtPt100} unit="℃" color="text-fuchsia-500" />
+        {/* STRICT REQUESTED READOUT SEQUENCE & LABELS */}
+        <Row label="AIR TEMPERATURE" value={data.airTemp} unit="℃" color="text-red-500" />
+        <Row label="AIR HEATER POWER" value={data.airHtLvl} color="text-sky-500" />
+        <Row label="AIR HEATER PT100" value={data.airHtPt100} unit="℃" color="text-fuchsia-500" />
         
-        <Row label="Humidity" value={data.humidity} unit="%" color="text-blue-500" />
-        <Row label="Water Level" value={data.waterLvl} color="text-cyan-500" />
-        <Row label="Humi PT100" value={data.humiHtPt100} unit="℃" color="text-purple-500" />
+        <Row label="HUMIDITY" value={data.humidity} unit="%" color="text-blue-500" />
+        <Row label="HUMIDITY HEATER POWER" value={data.humiHtLvl} color="text-cyan-500" />
+        <Row label="HUMIDITY HEATER PT100" value={data.humiHtPt100} unit="℃" color="text-purple-500" />
         
-        <Row label="Warm Level" value={data.warmHtLvl} color="text-slate-500" />
-        <Row label="Warm PT100" value={data.warmHtPt100} unit="℃" color="text-slate-700" />
+        <Row label="WARMER HEATER POWER" value={data.warmHtLvl} color="text-slate-500" />
+        <Row label="WARMER HEATER PT100" value={data.warmHtPt100} unit="℃" color="text-slate-700" />
         
-        <Row label="Skin 1" value={data.skin1Temp} unit="℃" color="text-orange-500" />
-        <Row label="Skin 2" value={data.skin2Temp} unit="℃" color="text-amber-500" />
-        <Row label="Oxygen" value={data.oxygen} unit="%" color="text-emerald-500" />
+        <Row label="OXYGEN" value={data.oxygen} unit="%" color="text-emerald-500" />
+        <Row label="TEMP. SENSOR #1" value={data.skin1Temp} unit="℃" color="text-orange-500" />
+        <Row label="TEMP. SENSOR #2" value={data.skin2Temp} unit="℃" color="text-amber-500" />
+        <Row label="WATER LEVEL" value={data.waterLvl} color="text-green-600" />
       </div>
     </div>
   );

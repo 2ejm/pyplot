@@ -9,10 +9,11 @@ export interface LogEntry {
   oxygen: number;
   airHtLvl: number;
   warmHtLvl: number;
-  waterLvl: number;
+  humiHtLvl: number; // Formerly waterLvl in hexList[19]
   airHtPt100: number;
   humiHtPt100: number;
   warmHtPt100: number;
+  waterLvl: number; // New field for water level status
   alarmSeq: number;
   alarmCode1: number;
   alarmCode2: number;

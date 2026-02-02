@@ -281,8 +281,8 @@ const App: React.FC = () => {
              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
           </div>
           <div>
-            <h1 className="text-md font-black text-gray-900 tracking-tight leading-none uppercase">MED-ANALYZER <span className="text-indigo-600">PRO</span></h1>
-            <p className="text-[8px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-1 italic">Enterprise Cloud Diagnostic</p>
+            <h1 className="text-md font-black text-gray-900 tracking-tight leading-none uppercase">MED-ANALYZER <span className="text-indigo-600"></span></h1>
+            <p className="text-[8px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-1 italic"></p>
           </div>
         </div>
 
@@ -415,7 +415,7 @@ const App: React.FC = () => {
             <div className="w-24 h-24 bg-gray-50 rounded-3xl flex items-center justify-center mb-8 text-indigo-600 border border-gray-100 shadow-inner group-hover:scale-110 group-hover:bg-indigo-50 transition-all duration-500">
                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
             </div>
-            <h2 className="text-3xl font-black text-gray-900 mb-2 tracking-tighter uppercase text-center px-4">Cloud Diagnostic Sync</h2>
+            <h2 className="text-3xl font-black text-gray-900 mb-2 tracking-tighter uppercase text-center px-4">Select Analysis File</h2>
             <p className="text-gray-400 mb-8 max-w-xs text-center text-[10px] font-bold uppercase tracking-[0.4em] leading-relaxed">Choose a telemetry source to begin analysis</p>
             <div className="flex gap-4">
                <button 
