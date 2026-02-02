@@ -10,13 +10,14 @@ import SidebarFileList from './components/SidebarFileList';
 declare var gapi: any;
 declare var google: any;
 
-const DEFAULT_SAMPLE_RATE = 10; 
+// Sample rate during initial file parsing (1 means no loss of data at source)
+const LOAD_TIME_SAMPLE_RATE = 1; 
 
 const DURATIONS = [
   { label: '5M', value: 5 * 60 * 1000 },
   { label: '10M', value: 10 * 60 * 1000 },
   { label: '1H', value: 1 * 3600 * 1000 },
-  { label: '12H', value: 12 * 3600 * 1000 },
+  { label: '6H', value: 6 * 3600 * 1000 },
   { label: '24H', value: 24 * 3600 * 1000 },
 ];
 
@@ -30,12 +31,10 @@ const App: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [highlightedTime, setHighlightedTime] = useState<number | null>(null);
   
-  // File Sources
   const [sourceType, setSourceType] = useState<'drive' | 'local' | null>(null);
   const [availableDriveFiles, setAvailableDriveFiles] = useState<any[]>([]);
   const [availableLocalFiles, setAvailableLocalFiles] = useState<File[]>([]);
   
-  // Auth & API State
   const [tokenClient, setTokenClient] = useState<any>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [apiReady, setApiReady] = useState(false);
@@ -44,38 +43,55 @@ const App: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
 
-  // Time boundary calculations
   const timeBoundaries = useMemo(() => {
     if (allData.length === 0) return { min: 0, max: 0, total: 0 };
-    const min = allData[0].timestamp;
-    const last = allData[allData.length - 1].timestamp;
-    // We allow starting anywhere from min to last. The range input logic will handle the end.
-    return { min, max: Math.max(min, last - duration), total: last - min };
+    const first = allData[0];
+    const last = allData[allData.length - 1];
+    const min = first ? first.timestamp : 0;
+    const lastTs = last ? last.timestamp : 0;
+    return { min, max: Math.max(min, lastTs - duration), total: lastTs - min };
   }, [allData, duration]);
 
-  // Navigation handlers
   const scrollBy = useCallback((percent: number) => {
     const shift = duration * percent;
     setStartTime(prev => {
       const next = prev + shift;
+      if (isNaN(next)) return prev;
       return Math.min(Math.max(next, timeBoundaries.min), timeBoundaries.max);
     });
   }, [duration, timeBoundaries]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (allData.length === 0) return;
+      if (e.key === 'ArrowLeft') {
+        scrollBy(-0.05);
+      } else if (e.key === 'ArrowRight') {
+        scrollBy(0.05);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [allData.length, scrollBy]);
+
   const jumpToTime = (timeStr: string) => {
     if (!timeStr || allData.length === 0) return;
-    const [h, m, s = 0] = timeStr.split(':').map(Number);
-    const targetDate = new Date(allData[0].timestamp);
-    targetDate.setHours(h, m, s, 0);
-    const targetTs = targetDate.getTime();
-    
-    const closest = allData.reduce((prev, curr) => 
-      Math.abs(curr.timestamp - targetTs) < Math.abs(prev.timestamp - targetTs) ? curr : prev
-    );
-    setStartTime(Math.min(Math.max(closest.timestamp - duration / 2, timeBoundaries.min), timeBoundaries.max));
+    try {
+      const parts = timeStr.split(':').map(Number);
+      const [h, m, s = 0] = parts;
+      if (isNaN(h) || isNaN(m)) return;
+      
+      const targetDate = new Date(allData[0].timestamp);
+      targetDate.setHours(h, m, s, 0);
+      const targetTs = targetDate.getTime();
+      
+      const closest = allData.reduce((prev, curr) => 
+        Math.abs(curr.timestamp - targetTs) < Math.abs(prev.timestamp - targetTs) ? curr : prev
+      );
+      setStartTime(Math.min(Math.max(closest.timestamp - duration / 2, timeBoundaries.min), timeBoundaries.max));
+    } catch (e) {}
   };
 
-  // Robust initialization flow
   const initializeGoogleApi = useCallback(async () => {
     setErrorInfo(null);
     setApiReady(false);
@@ -129,7 +145,7 @@ const App: React.FC = () => {
   }, [initializeGoogleApi]);
 
   const createPicker = useCallback((token: string) => {
-    if (!token) return;
+    if (!token || typeof google === 'undefined' || !google.picker) return;
     try {
       const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
         .setIncludeFolders(true)
@@ -159,6 +175,10 @@ const App: React.FC = () => {
   }, []);
 
   const listFilesInFolder = async (folderId: string) => {
+    if (!gapi?.client?.drive) {
+      setErrorInfo("Drive API client not ready.");
+      return;
+    }
     setLoading(true);
     try {
       const q = `'${folderId}' in parents and trashed = false and (mimeType = 'text/plain' or name contains '.log' or name contains '.txt')`;
@@ -179,12 +199,13 @@ const App: React.FC = () => {
   };
 
   const loadDriveFile = useCallback(async (file: any) => {
+    if (!gapi?.client?.drive) return;
     setLoading(true);
     setFileName(file.name);
     setHighlightedTime(null);
     try {
       const response = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' });
-      const parsed = parseLogFile(response.body, DEFAULT_SAMPLE_RATE); 
+      const parsed = parseLogFile(response.body, LOAD_TIME_SAMPLE_RATE); 
       setAllData(parsed);
       if (parsed.length > 0) setStartTime(parsed[0].timestamp);
       setSourceType('drive');
@@ -213,12 +234,19 @@ const App: React.FC = () => {
     setHighlightedTime(null);
     const reader = new FileReader();
     reader.onload = (e) => {
-      const parsed = parseLogFile(e.target?.result as string, DEFAULT_SAMPLE_RATE);
-      setAllData(parsed);
-      if (parsed.length > 0) setStartTime(parsed[0].timestamp);
-      setSourceType('local');
-      setLoading(false);
+      try {
+        const content = e.target?.result as string;
+        const parsed = parseLogFile(content, LOAD_TIME_SAMPLE_RATE);
+        setAllData(parsed);
+        if (parsed.length > 0) setStartTime(parsed[0].timestamp);
+        setSourceType('local');
+      } catch (err) {
+        setErrorInfo("Failed to parse local file.");
+      } finally {
+        setLoading(false);
+      }
     };
+    reader.onerror = () => setLoading(false);
     reader.readAsText(file);
   }, []);
 
@@ -235,16 +263,34 @@ const App: React.FC = () => {
   const handleDrop = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); dragCounter.current = 0; if (e.dataTransfer.files?.length > 0) handleFilesAdded(Array.from(e.dataTransfer.files)); };
 
   const handleAlarmJump = (timestamp: number) => {
+    if (isNaN(timestamp)) return;
     setHighlightedTime(timestamp);
-    // Center the alarm in the view
     const centerStart = timestamp - (duration / 2);
     setStartTime(Math.min(Math.max(centerStart, timeBoundaries.min), timeBoundaries.max));
   };
 
+  /**
+   * Optimized Data Filtering & Downsampling
+   * This reduces the load on the Recharts renderer by limiting the number of 
+   * SVG nodes processed simultaneously.
+   */
   const visibleData = useMemo(() => {
     if (!allData || allData.length === 0) return [];
     const endTs = startTime + duration;
-    return allData.filter(d => d.timestamp >= startTime && d.timestamp < endTs);
+    
+    // Initial slice by time
+    const inRange = allData.filter(d => d.timestamp >= startTime && d.timestamp < endTs);
+    
+    // Targeted downsampling: 
+    // Recharts performs best around 600-800 points. 
+    // We sample dynamically based on the current viewport width/duration.
+    const TARGET_POINTS = 600;
+    if (inRange.length > TARGET_POINTS) {
+      const step = Math.ceil(inRange.length / TARGET_POINTS);
+      return inRange.filter((_, idx) => idx % step === 0);
+    }
+    
+    return inRange;
   }, [allData, startTime, duration]);
 
   const handleReset = () => {
@@ -253,8 +299,9 @@ const App: React.FC = () => {
 
   return (
     <div 
-      className="flex flex-col h-screen w-screen bg-gray-50 font-sans selection:bg-indigo-100 text-gray-900 relative"
+      className="flex flex-col h-screen w-screen bg-gray-50 font-sans selection:bg-indigo-100 text-gray-900 relative outline-none"
       onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}
+      tabIndex={-1}
     >
       {errorInfo && (
         <div className="absolute top-14 left-0 right-0 z-50 px-6 py-2 bg-red-600 text-white flex items-center justify-between shadow-xl animate-in slide-in-from-top">
@@ -281,7 +328,7 @@ const App: React.FC = () => {
              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
           </div>
           <div>
-            <h1 className="text-md font-black text-gray-900 tracking-tight leading-none uppercase">MED-ANALYZER <span className="text-indigo-600"></span></h1>
+            <h1 className="text-md font-black text-gray-900 tracking-tight leading-none uppercase">MED-ANALYZER</h1>
             <p className="text-[8px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-1 italic"></p>
           </div>
         </div>
@@ -322,17 +369,16 @@ const App: React.FC = () => {
                   <LogChart data={visibleData} highlightedTime={highlightedTime} />
                 </div>
                 
-                {/* TIMELINE SCROLLER */}
                 <div className="mt-2 px-4 py-3 bg-gray-50 border-t border-gray-100 rounded-b-xl flex flex-col gap-2">
                   <div className="flex items-center justify-between px-1">
                     <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">
-                      START: {allData[0].time}
+                      START: {allData[0]?.time || '--'}
                     </span>
                     <span className="text-[9px] font-mono font-black text-indigo-600 uppercase tracking-tighter bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 shadow-sm">
-                      WINDOW POSITION: {new Date(startTime).toLocaleTimeString('en-GB', { hour12: false })}
+                      WINDOW POSITION: {isNaN(startTime) ? '--:--:--' : new Date(startTime).toLocaleTimeString('en-GB', { hour12: false })}
                     </span>
                     <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">
-                      END: {allData[allData.length-1].time}
+                      END: {allData[allData.length-1]?.time || '--'}
                     </span>
                   </div>
                   
@@ -351,14 +397,10 @@ const App: React.FC = () => {
                         type="range" 
                         min={timeBoundaries.min} 
                         max={timeBoundaries.max} 
-                        value={startTime} 
+                        value={isNaN(startTime) ? 0 : startTime} 
                         onChange={(e) => setStartTime(Number(e.target.value))}
                         className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 hover:accent-indigo-500 transition-all"
                       />
-                      {/* Visual guide for window size relative to total */}
-                      <div className="absolute top-1/2 -translate-y-1/2 pointer-events-none opacity-10 flex h-full items-center justify-center">
-                         <div className="h-4 bg-indigo-500 rounded border border-indigo-600" style={{ width: `${(duration / timeBoundaries.total) * 100}%` }}></div>
-                      </div>
                     </div>
 
                     <div className="flex gap-1">
