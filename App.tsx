@@ -30,6 +30,12 @@ const App: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [highlightedTime, setHighlightedTime] = useState<number | null>(null);
   
+  // Persistent Chart Settings across file loads
+  const [leftOffset, setLeftOffset] = useState(0);
+  const [leftScale, setLeftScale] = useState(120);
+  const [rightOffset, setRightOffset] = useState(0);
+  const [rightScale, setRightScale] = useState(120);
+
   const [sourceType, setSourceType] = useState<'drive' | 'local' | null>(null);
   const [availableDriveFiles, setAvailableDriveFiles] = useState<any[]>([]);
   const [availableLocalFiles, setAvailableLocalFiles] = useState<File[]>([]);
@@ -94,18 +100,13 @@ const App: React.FC = () => {
   const initializeGoogleApi = useCallback(async () => {
     setErrorInfo(null);
     setApiReady(false);
-    
     try {
       let attempts = 0;
       while ((typeof gapi === 'undefined' || typeof google === 'undefined') && attempts < 10) {
         await new Promise(r => setTimeout(r, 500));
         attempts++;
       }
-
-      if (typeof gapi === 'undefined' || typeof google === 'undefined') {
-        throw new Error("Google scripts not loaded.");
-      }
-
+      if (typeof gapi === 'undefined' || typeof google === 'undefined') throw new Error("Google scripts not loaded.");
       await new Promise((resolve, reject) => {
         gapi.load('client:picker', {
           callback: resolve,
@@ -113,12 +114,10 @@ const App: React.FC = () => {
           timeout: 5000
         });
       });
-      
       await gapi.client.init({
         apiKey: process.env.API_KEY,
         discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
       });
-
       const client = google.accounts.oauth2.initTokenClient({
         client_id: '754877797743-j9m7i6p0m26p0h48h0r6l8q7n8g7e8p0.apps.googleusercontent.com',
         scope: 'https://www.googleapis.com/auth/drive.readonly',
@@ -131,7 +130,6 @@ const App: React.FC = () => {
           createPicker(response.access_token);
         },
       });
-      
       setTokenClient(client);
       setApiReady(true);
     } catch (err: any) {
@@ -271,12 +269,16 @@ const App: React.FC = () => {
   const visibleData = useMemo(() => {
     if (!allData || allData.length === 0) return [];
     const endTs = startTime + duration;
-    const inRange = allData.filter(d => d.timestamp >= startTime && d.timestamp < endTs);
+    // Inclusive check (<= endTs) to prevent edge case missing points
+    const inRange = allData.filter(d => d.timestamp >= startTime && d.timestamp <= endTs);
     const TARGET_POINTS = 600;
+    
     if (inRange.length > TARGET_POINTS) {
       const step = Math.ceil(inRange.length / TARGET_POINTS);
       let sampled = inRange.filter((_, idx) => idx % step === 0);
-      if (highlightedTime && highlightedTime >= startTime && highlightedTime < endTs) {
+      
+      // Ensure the exact alarm point is injected into the data array if it's currently visible
+      if (highlightedTime && highlightedTime >= startTime && highlightedTime <= endTs) {
         const hasPoint = sampled.some(p => p.timestamp === highlightedTime);
         if (!hasPoint) {
           const alarmPoint = inRange.find(p => p.timestamp === highlightedTime);
@@ -304,141 +306,142 @@ const App: React.FC = () => {
       {errorInfo && (
         <div className="absolute top-16 left-0 right-0 z-50 px-8 py-3 bg-red-600 text-white flex items-center justify-between shadow-xl animate-in slide-in-from-top">
           <div className="flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-            <span className="text-xs font-black uppercase tracking-widest">{errorInfo}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <span className="text-sm font-black uppercase tracking-widest">{errorInfo}</span>
           </div>
-          <div className="flex gap-3">
-            <button onClick={initializeGoogleApi} className="text-[11px] font-black border border-white/30 px-4 py-1.5 rounded-lg hover:bg-white/10 uppercase tracking-tighter transition-all">Retry Auth</button>
-            <button onClick={() => setErrorInfo(null)} className="text-[11px] font-black uppercase tracking-tighter opacity-70 hover:opacity-100">Close</button>
+          <div className="flex gap-4">
+            <button onClick={initializeGoogleApi} className="text-xs font-black border border-white/30 px-5 py-2 rounded-xl hover:bg-white/10 uppercase tracking-tighter transition-all">Retry Auth</button>
+            <button onClick={() => setErrorInfo(null)} className="text-xs font-black uppercase tracking-tighter opacity-70 hover:opacity-100">Close</button>
           </div>
         </div>
       )}
 
-      {isDragging && (
-        <div className="absolute inset-0 z-50 bg-indigo-600/90 backdrop-blur-md flex flex-col items-center justify-center border-8 border-dashed border-white/30 m-4 rounded-3xl pointer-events-none transition-all duration-300">
-          <h2 className="text-5xl font-black text-white uppercase tracking-tighter">Release to Analyze</h2>
-        </div>
-      )}
-
-      <header className="bg-white border-b border-gray-200 px-8 py-3 flex items-center justify-between shadow-sm z-10">
+      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm z-10">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
+          <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+             <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
           </div>
           <div>
-            <h1 className="text-lg font-black text-gray-900 tracking-tight leading-none uppercase">MED-ANALYZER</h1>
+            <h1 className="text-xl font-black text-gray-900 tracking-tight leading-none uppercase">MED-ANALYZER</h1>
             <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.25em] mt-1 italic"></p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={handleDriveClick} 
-            className={`px-6 py-2.5 rounded-xl text-xs font-black transition-all shadow-sm uppercase tracking-widest flex items-center gap-3 border ${
-              apiReady ? 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 active:scale-95' : 'bg-gray-100 text-gray-300 border-transparent cursor-wait'
-            }`}
-          >
+        <div className="flex items-center gap-4">
+          <button onClick={handleDriveClick} className="px-6 py-3 bg-white text-gray-700 border border-gray-200 rounded-2xl text-xs font-black transition-all shadow-sm uppercase tracking-widest flex items-center gap-3 hover:bg-gray-50 active:scale-95">
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor"><path d="M15.75 14.25L10.5 5.25L5.25 14.25H15.75ZM22.5 14.25H18.75L13.5 5.25H17.25L22.5 14.25ZM9.75 18.75H14.25L19.5 9.75L15 9.75L9.75 18.75ZM1.5 14.25L6.75 5.25H10.5L5.25 14.25H1.5ZM4.5 18.75H9L13.5 9.75H9L4.5 18.75ZM15 18.75H19.5L22.5 14.25H18L15 18.75Z"/></svg>
-            {apiReady ? (accessToken ? 'Open Drive' : 'Sync Drive') : 'Init...'}
+            Cloud Repository
           </button>
           
           <input type="file" ref={fileInputRef} onChange={(e) => handleFilesAdded(Array.from(e.target.files || []))} className="hidden" multiple accept=".log,.txt" />
-          <button onClick={() => fileInputRef.current?.click()} className="px-6 py-2.5 bg-indigo-600 rounded-xl text-xs font-black text-white hover:bg-indigo-700 transition-all shadow-md uppercase tracking-widest">Local Import</button>
+          <button onClick={() => fileInputRef.current?.click()} className="px-6 py-3 bg-indigo-600 rounded-2xl text-xs font-black text-white hover:bg-indigo-700 transition-all shadow-md uppercase tracking-widest">Import Logs</button>
           
           {allData.length > 0 && (
-            <button onClick={handleReset} className="p-2.5 text-gray-400 hover:text-red-500 bg-white rounded-xl border border-gray-200 shadow-sm transition-colors active:scale-95">
+            <button onClick={handleReset} className="p-3 text-gray-400 hover:text-red-500 bg-white rounded-xl border border-gray-200 shadow-sm transition-colors active:scale-95">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
             </button>
           )}
         </div>
       </header>
 
-      <main className="flex-1 overflow-hidden p-4 flex flex-col gap-4">
+      <main className="flex-1 overflow-hidden p-6 flex flex-col gap-6">
         {!allData.length && !loading ? (
           <div className="flex-1 flex flex-col items-center justify-center bg-white border border-gray-200 rounded-[2.5rem] shadow-sm group">
-            <div className="w-32 h-32 bg-indigo-50 rounded-3xl flex items-center justify-center mb-10 text-indigo-600 border border-indigo-100 shadow-inner group-hover:scale-110 transition-all duration-700">
-               <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
+            <div className="w-36 h-36 bg-indigo-50 rounded-[2rem] flex items-center justify-center mb-10 text-indigo-600 border border-indigo-100 shadow-inner group-hover:scale-110 transition-all duration-700">
+               <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
             </div>
-            <h2 className="text-4xl font-black text-gray-900 mb-4 tracking-tighter uppercase text-center px-8">Ready for Analysis</h2>
-            <p className="text-gray-400 mb-12 max-w-sm text-center text-xs font-bold uppercase tracking-[0.4em] leading-loose">Choose a telemetry source to begin high-fidelity data processing</p>
-            <div className="flex gap-6">
-               <button onClick={handleDriveClick} className="px-10 py-5 bg-indigo-600 text-white rounded-2xl font-black text-xs shadow-2xl hover:bg-indigo-700 transition-all active:scale-95 uppercase tracking-widest border border-indigo-500">Google Drive</button>
-               <button onClick={() => fileInputRef.current?.click()} className="px-10 py-5 bg-white border border-gray-200 rounded-2xl font-black text-xs text-gray-700 hover:bg-gray-50 transition-all active:scale-95 uppercase tracking-widest shadow-sm">Local Logs</button>
+            <h2 className="text-4xl font-black text-gray-900 mb-6 tracking-tighter uppercase text-center px-10">System Ready</h2>
+            <p className="text-gray-400 mb-12 max-w-sm text-center text-sm font-bold uppercase tracking-[0.4em] leading-relaxed">Import telemetry packets to begin visualization</p>
+            <div className="flex gap-8">
+               <button onClick={handleDriveClick} className="px-10 py-5 bg-indigo-600 text-white rounded-2xl font-black text-xs shadow-2xl hover:bg-indigo-700 transition-all active:scale-95 uppercase tracking-widest border border-indigo-500">Cloud Storage</button>
+               <button onClick={() => fileInputRef.current?.click()} className="px-10 py-5 bg-white border border-gray-200 rounded-2xl font-black text-xs text-gray-700 hover:bg-gray-50 transition-all active:scale-95 uppercase tracking-widest shadow-sm">Local Drive</button>
             </div>
-          </div>
-        ) : loading ? (
-          <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-[2.5rem] shadow-sm border border-gray-200">
-            <div className="w-16 h-16 border-4 border-gray-100 border-t-indigo-500 rounded-full animate-spin"></div>
-            <p className="font-black mt-6 text-gray-400 uppercase tracking-widest text-xs">Streaming Data Packets...</p>
           </div>
         ) : (
-          <div className="flex flex-col lg:flex-row h-full gap-4">
-            <div className="flex-1 min-h-0 flex flex-col gap-4">
-              <div className="flex-1 min-h-0 bg-white rounded-2xl border border-gray-200 p-3 shadow-sm relative overflow-hidden flex flex-col">
+          <div className="flex flex-col lg:flex-row h-full gap-6">
+            <div className="flex-1 min-h-0 flex flex-col gap-6 relative">
+              {/* Specialized Loading Overlay for Chart Area */}
+              {loading && (
+                <div className="absolute inset-0 z-50 bg-white/60 backdrop-blur-[2px] rounded-[2rem] flex flex-col items-center justify-center">
+                   <div className="w-16 h-16 border-[5px] border-indigo-100 border-t-indigo-500 rounded-full animate-spin"></div>
+                   <p className="font-black mt-6 text-indigo-400 uppercase tracking-[0.3em] text-[10px]">Processing Stream...</p>
+                </div>
+              )}
+              
+              <div className="flex-1 min-h-0 bg-white rounded-[2rem] border border-gray-200 p-4 shadow-sm relative overflow-hidden flex flex-col">
                 <div className="flex-1 min-h-0">
-                  <LogChart data={visibleData} highlightedTime={highlightedTime} />
+                  <LogChart 
+                    data={visibleData} 
+                    highlightedTime={highlightedTime}
+                    leftOffset={leftOffset}
+                    leftScale={leftScale}
+                    rightOffset={rightOffset}
+                    rightScale={rightScale}
+                    onSettingsChange={(settings) => {
+                      if (settings.leftOffset !== undefined) setLeftOffset(settings.leftOffset);
+                      if (settings.leftScale !== undefined) setLeftScale(settings.leftScale);
+                      if (settings.rightOffset !== undefined) setRightOffset(settings.rightOffset);
+                      if (settings.rightScale !== undefined) setRightScale(settings.rightScale);
+                    }}
+                  />
                 </div>
                 
-                <div className="mt-4 px-6 py-4 bg-gray-50 border-t border-gray-100 rounded-b-2xl flex flex-col gap-4">
+                <div className="mt-6 px-8 py-5 bg-gray-50 border-t border-gray-100 rounded-b-[2rem] flex flex-col gap-5">
                   <div className="flex items-center justify-between px-2">
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      STREAM START: {allData[0]?.time}
-                    </span>
-                    <span className="text-xs font-mono font-black text-indigo-600 uppercase tracking-tight bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100 shadow-sm">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">START: {allData[0]?.time}</span>
+                    <span className="text-xs font-mono font-black text-indigo-600 uppercase tracking-tight bg-indigo-100/50 px-5 py-2 rounded-xl border border-indigo-200 shadow-sm">
                       WINDOW: {new Date(startTime).toLocaleTimeString('en-GB', { hour12: false })}
                     </span>
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      STREAM END: {allData[allData.length-1]?.time}
-                    </span>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">END: {allData[allData.length-1]?.time}</span>
                   </div>
                   
-                  <div className="flex items-center gap-4">
-                    <button onClick={() => setStartTime(timeBoundaries.min)} className="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-500 hover:bg-gray-100 active:scale-95 transition-all shadow-sm">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg>
+                  <div className="flex items-center gap-6">
+                    <button onClick={() => setStartTime(timeBoundaries.min)} className="p-3 bg-white border border-gray-200 rounded-xl text-gray-500 hover:bg-gray-100 active:scale-95 transition-all shadow-sm">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg>
                     </button>
-                    <div className="flex-1 relative h-8 flex items-center">
+                    <div className="flex-1 relative h-10 flex items-center">
                       <input 
                         type="range" 
                         min={timeBoundaries.min} 
                         max={timeBoundaries.max} 
                         value={startTime} 
                         onChange={(e) => setStartTime(Number(e.target.value))}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 hover:accent-indigo-500 transition-all"
+                        className="w-full h-3 bg-gray-200 rounded-full appearance-none cursor-pointer accent-indigo-600 hover:accent-indigo-500 transition-all"
                       />
                     </div>
-                    <button onClick={() => setStartTime(timeBoundaries.max)} className="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-500 hover:bg-gray-100 active:scale-95 transition-all shadow-sm">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
+                    <button onClick={() => setStartTime(timeBoundaries.max)} className="p-3 bg-white border border-gray-200 rounded-xl text-gray-500 hover:bg-gray-100 active:scale-95 transition-all shadow-sm">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
                     </button>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
-                  <span className="text-[11px] font-black text-gray-500 uppercase tracking-widest px-1">Precise Temporal Jump</span>
-                  <div className="flex gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white border border-gray-200 rounded-[2rem] p-6 shadow-sm flex flex-col gap-4">
+                  <span className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] px-1">Precise Jump</span>
+                  <div className="flex gap-4">
                     <input 
                       type="time" 
                       step="1" 
                       value={searchTime} 
                       onChange={(e) => setSearchTime(e.target.value)} 
-                      className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono font-bold text-indigo-700 outline-none focus:ring-4 focus:ring-indigo-500/10" 
+                      className="flex-1 px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-base font-mono font-bold text-indigo-700 outline-none focus:ring-8 focus:ring-indigo-500/10" 
                     />
-                    <button onClick={() => jumpToTime(searchTime)} className="px-6 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-md">Go</button>
+                    <button onClick={() => jumpToTime(searchTime)} className="px-8 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg active:scale-95">Go</button>
                   </div>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
-                  <span className="text-[11px] font-black text-gray-500 uppercase tracking-widest px-1">Scale Config (Window Duration)</span>
-                  <div className="grid grid-cols-5 gap-2">
+                <div className="bg-white border border-gray-200 rounded-[2rem] p-6 shadow-sm flex flex-col gap-4">
+                  <span className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] px-1">Scale Config (Window)</span>
+                  <div className="grid grid-cols-5 gap-3">
                     {DURATIONS.map((d) => (
-                      <button key={d.value} onClick={() => setDuration(d.value)} className={`py-3 text-xs font-black rounded-xl transition-all border ${duration === d.value ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}>{d.label}</button>
+                      <button key={d.value} onClick={() => setDuration(d.value)} className={`py-4 text-xs font-black rounded-2xl transition-all border ${duration === d.value ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}>{d.label}</button>
                     ))}
                   </div>
                 </div>
               </div>
             </div>
             
-            <div className="lg:w-96 flex flex-col gap-4 flex-shrink-0 overflow-y-auto pr-1 custom-scrollbar">
+            <div className="lg:w-96 flex flex-col gap-6 flex-shrink-0 overflow-y-auto pr-2 custom-scrollbar pb-6">
               <AlarmSummary data={allData} onAlarmClick={handleAlarmJump} />
               <FixedAnnotation />
               <SidebarFileList 

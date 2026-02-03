@@ -15,30 +15,30 @@ const FixedAnnotation: React.FC = () => {
 
   if (!data) {
     return (
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm w-full min-h-[220px] flex flex-col items-center justify-center border-dashed">
-        <p className="text-gray-300 text-xs font-black uppercase tracking-[0.25em] italic">Probe Inactive</p>
+      <div className="bg-white border border-gray-200 rounded-[2rem] p-10 shadow-sm w-full min-h-[300px] flex flex-col items-center justify-center border-dashed">
+        <p className="text-gray-300 text-sm font-black uppercase tracking-[0.3em] italic">Probe Inactive</p>
       </div>
     );
   }
 
   const Row = ({ label, value, unit = "", color = "text-gray-900" }: { label: string, value: number | string, unit?: string, color?: string }) => (
-    <div className="flex justify-between items-center gap-6 py-1.5 border-b border-gray-50 last:border-0">
-      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">{label}</span>
-      <span className={`text-xs font-mono font-bold ${color}`}>
+    <div className="flex justify-between items-center gap-8 py-2.5 border-b border-gray-50 last:border-0 transition-colors">
+      <span className={`text-[11px] font-black uppercase tracking-widest leading-none ${color}`}>{label}</span>
+      <span className={`text-[13px] font-mono font-bold ${color}`}>
         {typeof value === 'number' ? value.toFixed(1) : value}{unit}
       </span>
     </div>
   );
 
   return (
-    <div className="bg-white border border-gray-200 p-4 rounded-2xl shadow-sm w-full border-l-8 border-l-indigo-600 transition-all">
-      <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
-        <span className="text-[11px] font-black text-indigo-600 uppercase tracking-widest">[ PROBE READOUT ]</span>
+    <div className="bg-white border border-gray-200 p-6 rounded-[2.5rem] shadow-md w-full border-l-[10px] border-l-indigo-600 transition-all">
+      <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
+        <span className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.2em] leading-none">[ READOUT ]</span>
         <span className="text-xs font-mono font-bold text-gray-600">
           {new Date(data.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
         </span>
       </div>
-      <div className="space-y-0.5">
+      <div className="space-y-1">
         <Row label="AIR TEMPERATURE" value={data.airTemp} unit="℃" color="text-red-600" />
         <Row label="AIR HEATER POWER" value={data.airHtLvl} color="text-sky-600" />
         <Row label="AIR HEATER PT100" value={data.airHtPt100} unit="℃" color="text-fuchsia-600" />

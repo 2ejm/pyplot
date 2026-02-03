@@ -26,25 +26,25 @@ const AlarmSummary: React.FC<AlarmSummaryProps> = ({ data, onAlarmClick }) => {
   }, [data]);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm w-full">
-      <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
-        <h3 className="text-red-600 font-black text-xs uppercase tracking-[0.2em]">[ ALARM LOG ]</h3>
-        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Jump to Event</span>
+    <div className="bg-white border border-gray-200 rounded-[2rem] p-6 shadow-sm w-full">
+      <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
+        <h3 className="text-red-600 font-black text-xs uppercase tracking-[0.2em] leading-none">[ ALARM LOG ]</h3>
+        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Jump</span>
       </div>
-      <div className="font-mono text-[11px] space-y-1.5">
-        <div className="grid grid-cols-4 text-gray-400 font-black border-b border-gray-100 pb-2 mb-2">
+      <div className="font-mono text-[11px] space-y-2">
+        <div className="grid grid-cols-4 text-gray-400 font-black border-b border-gray-100 pb-3 mb-3 px-3">
           <span>TIME</span>
           <span>SEQ</span>
           <span>CODE1</span>
           <span>CODE2</span>
         </div>
-        <div className="max-h-[200px] overflow-y-auto space-y-1 custom-scrollbar pr-1">
+        <div className="max-h-[250px] overflow-y-auto space-y-1 custom-scrollbar pr-1">
           {alarms.length > 0 ? (
             alarms.map((row, i) => (
               <button 
                 key={i} 
                 onClick={() => onAlarmClick(row.timestamp)}
-                className="grid grid-cols-4 w-full text-left text-red-500 font-bold border-b border-gray-50 py-2 hover:bg-red-50 transition-all rounded-lg px-2 active:scale-95 group"
+                className="grid grid-cols-4 w-full text-left text-red-500 font-bold border-b border-gray-50 py-3 hover:bg-red-50/50 transition-all rounded-xl px-3 active:scale-95 group"
               >
                 <span className="group-hover:translate-x-1 transition-transform">{row.time}</span>
                 <span>{toHexString(row.alarmSeq)}</span>
@@ -53,7 +53,7 @@ const AlarmSummary: React.FC<AlarmSummaryProps> = ({ data, onAlarmClick }) => {
               </button>
             ))
           ) : (
-            <div className="py-8 text-center text-gray-300 italic font-black uppercase tracking-widest text-[10px]">System Nominal</div>
+            <div className="py-12 text-center text-gray-300 italic font-black uppercase tracking-widest text-[10px]">System Nominal</div>
           )}
         </div>
       </div>

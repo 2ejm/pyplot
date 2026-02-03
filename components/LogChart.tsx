@@ -8,6 +8,11 @@ import { LogEntry, ChartVisibility } from '../types';
 interface LogChartProps {
   data: LogEntry[];
   highlightedTime?: number | null;
+  leftOffset: number;
+  leftScale: number;
+  rightOffset: number;
+  rightScale: number;
+  onSettingsChange: (settings: { leftOffset?: number, leftScale?: number, rightOffset?: number, rightScale?: number }) => void;
 }
 
 const CustomTooltip = ({ active, payload }: any) => {
@@ -44,7 +49,7 @@ const RenderCustomLegend = (props: any) => {
   if (!payload) return null;
   
   return (
-    <div className="flex flex-wrap justify-center gap-x-5 gap-y-3 pt-5 px-6">
+    <div className="flex flex-wrap justify-center gap-x-6 gap-y-4 pt-6 px-8">
       {payload.map((entry: any, index: number) => {
         const isVisible = visibility[entry.dataKey];
         const displayName = cleanLabel(entry.value);
@@ -52,20 +57,21 @@ const RenderCustomLegend = (props: any) => {
         return (
           <div 
             key={`item-${index}`} 
-            className="flex items-center gap-2 cursor-pointer group select-none"
+            className="flex items-center gap-3 cursor-pointer group select-none"
             onClick={() => onClick(entry.dataKey)}
           >
             <div 
-              className="w-4 h-1 rounded-full transition-all" 
+              className="w-5 h-1.5 rounded-full transition-all" 
               style={{ 
                 backgroundColor: isVisible ? entry.color : '#e2e8f0',
                 opacity: isVisible ? 1 : 0.3
               }} 
             />
             <span 
-              className={`text-[11px] font-black uppercase tracking-tighter transition-all ${
-                isVisible ? 'text-slate-600' : 'text-slate-300 line-through'
-              } group-hover:text-indigo-600`}
+              className={`text-[13px] font-black uppercase tracking-tight transition-all ${
+                isVisible ? '' : 'text-slate-300 line-through'
+              } group-hover:brightness-75`}
+              style={{ color: isVisible ? entry.color : undefined }}
             >
               {displayName}
             </span>
@@ -123,13 +129,17 @@ const useContinuousPress = (callback: () => void, onStart?: () => void) => {
   };
 };
 
-const INIT_LEFT_OFFSET = 0;   
-const INIT_LEFT_SCALE = 120;    
-const INIT_RIGHT_OFFSET = 0;
-const INIT_RIGHT_SCALE = 120;
 const STEP = 5;
 
-const LogChart: React.FC<LogChartProps> = memo(({ data, highlightedTime }) => {
+const LogChart: React.FC<LogChartProps> = memo(({ 
+  data, 
+  highlightedTime, 
+  leftOffset, 
+  leftScale, 
+  rightOffset, 
+  rightScale, 
+  onSettingsChange 
+}) => {
   const [visibility, setVisibility] = useState<ChartVisibility>({
     airTemp: true,
     airHtLvl: true,
@@ -144,11 +154,6 @@ const LogChart: React.FC<LogChartProps> = memo(({ data, highlightedTime }) => {
     skin2Temp: true,
     waterLvl: true,
   });
-
-  const [leftOffset, setLeftOffset] = useState(INIT_LEFT_OFFSET);
-  const [leftScale, setLeftScale] = useState(INIT_LEFT_SCALE);
-  const [rightOffset, setRightOffset] = useState(INIT_RIGHT_OFFSET);
-  const [rightScale, setRightScale] = useState(INIT_RIGHT_SCALE);
 
   const [focusContext, setFocusContext] = useState<{ channel: 'left' | 'right', param: 'scale' | 'offset' }>({
     channel: 'left',
@@ -177,13 +182,11 @@ const LogChart: React.FC<LogChartProps> = memo(({ data, highlightedTime }) => {
   }, []);
 
   const resetLeft = () => { 
-    setLeftOffset(INIT_LEFT_OFFSET); 
-    setLeftScale(INIT_LEFT_SCALE); 
+    onSettingsChange({ leftOffset: 0, leftScale: 120 });
     setFocusContext({ channel: 'left', param: 'scale' });
   };
   const resetRight = () => { 
-    setRightOffset(INIT_RIGHT_OFFSET); 
-    setRightScale(INIT_RIGHT_SCALE); 
+    onSettingsChange({ rightOffset: 0, rightScale: 120 });
     setFocusContext({ channel: 'right', param: 'scale' });
   };
 
@@ -191,18 +194,18 @@ const LogChart: React.FC<LogChartProps> = memo(({ data, highlightedTime }) => {
     const step = STEP;
     if (channel === 'left') {
       if (param === 'scale') {
-        setLeftScale(prev => p(Math.max(5, prev + (direction * step))));
+        onSettingsChange({ leftScale: p(Math.max(5, leftScale + (direction * step))) });
       } else {
-        setLeftOffset(prev => p(prev + (direction * step)));
+        onSettingsChange({ leftOffset: p(leftOffset + (direction * step)) });
       }
     } else {
       if (param === 'scale') {
-        setRightScale(prev => p(Math.max(5, prev + (direction * step))));
+        onSettingsChange({ rightScale: p(Math.max(5, rightScale + (direction * step))) });
       } else {
-        setRightOffset(prev => p(prev + (direction * step)));
+        onSettingsChange({ rightOffset: p(rightOffset + (direction * step)) });
       }
     }
-  }, []);
+  }, [leftOffset, leftScale, rightOffset, rightScale, onSettingsChange]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -240,13 +243,10 @@ const LogChart: React.FC<LogChartProps> = memo(({ data, highlightedTime }) => {
     color: item.color,
   })), [legendItems]);
 
-  const highlightedTimeString = useMemo(() => {
-    if (!highlightedTime) return null;
-    const entry = data.find(d => d.timestamp === highlightedTime);
-    return entry ? entry.time : null;
-  }, [highlightedTime, data]);
-
-  const formatXAxis = (tickItem: string) => (tickItem ? tickItem.split(' ')[0] : '');
+  const formatXAxis = (ts: number) => {
+    if (!ts) return '';
+    return new Date(ts).toLocaleTimeString('en-GB', { hour12: false });
+  };
 
   const OscBtnControl = ({ label, value, channel, param, colorClass, icon }: any) => {
     const isActive = focusContext.channel === channel && focusContext.param === param;
@@ -257,23 +257,23 @@ const LogChart: React.FC<LogChartProps> = memo(({ data, highlightedTime }) => {
     const pressDown = useContinuousPress(() => onAction(-1), setFocus);
 
     return (
-      <div className={`flex flex-col items-center gap-1.5 group rounded-2xl p-2 transition-all ${isActive ? 'ring-4 ring-indigo-500/10 bg-indigo-50/50 shadow-md' : ''}`}>
-        <div className={`p-1.5 rounded-lg bg-gray-50 border border-gray-100 ${colorClass} shadow-sm mb-1`}>{icon}</div>
+      <div className={`flex flex-col items-center gap-2 group rounded-[2rem] p-3 transition-all ${isActive ? 'ring-8 ring-indigo-500/5 bg-indigo-50/50 shadow-md' : ''}`}>
+        <div className={`p-2 rounded-xl bg-gray-50 border border-gray-100 ${colorClass} shadow-sm mb-1`}>{icon}</div>
         <button 
           {...pressUp}
-          className="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 rounded-t-xl hover:bg-gray-50 text-gray-600 transition-colors shadow-sm active:bg-gray-100 outline-none select-none touch-none"
+          className="w-12 h-12 flex items-center justify-center bg-white border border-gray-200 rounded-t-2xl hover:bg-gray-50 text-gray-600 transition-colors shadow-sm active:bg-gray-100 outline-none select-none touch-none"
         >
-          <svg className="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 15l7-7 7 7" /></svg>
+          <svg className="w-6 h-6 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 15l7-7 7 7" /></svg>
         </button>
-        <div className="w-16 h-12 flex flex-col items-center justify-center bg-gray-50 border-x border-gray-200 py-1">
-          <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">{label}</span>
-          <span className={`text-[11px] font-mono font-black ${colorClass} leading-none`}>{Math.round(value)}</span>
+        <div className="w-20 h-16 flex flex-col items-center justify-center bg-gray-50 border-x border-gray-200 py-1">
+          <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1.5">{label}</span>
+          <span className={`text-[15px] font-mono font-black ${colorClass} leading-none`}>{Math.round(value)}</span>
         </div>
         <button 
           {...pressDown}
-          className="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 rounded-b-xl hover:bg-gray-50 text-gray-600 transition-colors shadow-sm active:bg-gray-100 outline-none select-none touch-none"
+          className="w-12 h-12 flex items-center justify-center bg-white border border-gray-200 rounded-b-2xl hover:bg-gray-50 text-gray-600 transition-colors shadow-sm active:bg-gray-100 outline-none select-none touch-none"
         >
-          <svg className="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+          <svg className="w-6 h-6 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
         </button>
       </div>
     );
@@ -281,16 +281,17 @@ const LogChart: React.FC<LogChartProps> = memo(({ data, highlightedTime }) => {
 
   return (
     <div className="w-full h-full bg-white flex flex-col p-2 overflow-hidden">
-      <div className="flex-1 flex gap-4 min-h-0">
-        <div className="flex flex-col items-center justify-center gap-4 px-3 py-4 bg-gray-50/50 rounded-3xl border border-gray-100 shadow-sm min-w-[90px]">
-          <div className="text-[9px] font-black text-red-600 bg-red-50 px-3 py-1 rounded-lg border border-red-100 uppercase tracking-widest mb-1">CH-L</div>
+      <div className="flex-1 flex gap-5 min-h-0">
+        {/* CH-L Controls */}
+        <div className="flex flex-col items-center justify-center gap-5 px-4 py-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-100 shadow-sm min-w-[110px]">
+          <div className="text-[10px] font-black text-red-600 bg-red-100 px-4 py-2 rounded-xl border border-red-200 uppercase tracking-widest mb-1 shadow-sm">CH-L</div>
           <OscBtnControl 
             label="SCALE" 
             value={leftScale} 
             channel="left" 
             param="scale" 
             colorClass="text-red-600" 
-            icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 8l8-8 8 8M4 16l8 8 8-8" /></svg>} 
+            icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 8l8-8 8 8M4 16l8 8 8-8" /></svg>} 
           />
           <OscBtnControl 
             label="OFFSET" 
@@ -298,25 +299,37 @@ const LogChart: React.FC<LogChartProps> = memo(({ data, highlightedTime }) => {
             channel="left" 
             param="offset" 
             colorClass="text-red-500" 
-            icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg>} 
+            icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg>} 
           />
-          <button onClick={resetLeft} className="mt-2 w-16 py-1.5 bg-gray-200 hover:bg-red-500 hover:text-white text-gray-500 rounded-lg text-[9px] font-black uppercase transition-all shadow-sm border border-transparent">RESET</button>
+          <button onClick={resetLeft} className="mt-2 w-20 py-2 bg-gray-200 hover:bg-red-500 hover:text-white text-gray-500 rounded-xl text-[10px] font-black uppercase transition-all shadow-sm active:scale-95">RESET</button>
         </div>
 
-        <div className="flex-1 min-w-0 bg-white relative rounded-2xl overflow-hidden border border-gray-100 shadow-inner">
+        {/* Chart Area */}
+        <div className="flex-1 min-w-0 bg-white relative rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-inner">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 30, right: 15, left: 15, bottom: 10 }}>
-              <XAxis dataKey="time" tickFormatter={formatXAxis} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 'bold' }} interval="preserveStartEnd" minTickGap={25} stroke="#cbd5e1" />
-              <YAxis yAxisId="left" domain={leftDomain} allowDataOverflow={true} tickCount={11} tick={{ fontSize: 11, fill: '#ef4444', fontWeight: 'bold' }} stroke="#ef4444" strokeWidth={1.5} width={70} />
-              <YAxis yAxisId="right" orientation="right" domain={rightDomain} allowDataOverflow={true} tickCount={11} tick={{ fontSize: 11, fill: '#3b82f6', fontWeight: 'bold' }} stroke="#3b82f6" strokeWidth={1.5} width={70} />
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={true} horizontal={true} strokeOpacity={0.8} />
-              <Tooltip content={<CustomTooltip />} isAnimationActive={false} cursor={{ stroke: '#6366f1', strokeWidth: 2, strokeDasharray: '5 5' }} />
+            <LineChart data={data} margin={{ top: 40, right: 20, left: 20, bottom: 15 }}>
+              <XAxis 
+                type="number"
+                dataKey="timestamp" 
+                domain={['dataMin', 'dataMax']}
+                tickFormatter={formatXAxis} 
+                tick={{ fontSize: 13, fill: '#64748b', fontWeight: 'bold' }} 
+                stroke="#cbd5e1"
+              />
+              <YAxis yAxisId="left" domain={leftDomain} allowDataOverflow={true} tickCount={11} tick={{ fontSize: 14, fill: '#ef4444', fontWeight: 'bold' }} stroke="#ef4444" strokeWidth={2} width={75} />
+              <YAxis yAxisId="right" orientation="right" domain={rightDomain} allowDataOverflow={true} tickCount={11} tick={{ fontSize: 14, fill: '#3b82f6', fontWeight: 'bold' }} stroke="#3b82f6" strokeWidth={2} width={75} />
+              <CartesianGrid  yAxisId="left"  strokeDasharray="3 3" stroke="#e2e8f0" vertical={true} horizontal={true} strokeOpacity={0.8} />
+              <Tooltip content={<CustomTooltip />} isAnimationActive={false} cursor={{ stroke: '#6366f1', strokeWidth: 2.5, strokeDasharray: '6 6' }} />
               <Legend content={<RenderCustomLegend visibility={visibility} onClick={toggleVisibility} />} {...({ payload: legendPayload } as any)} />
 
-              {highlightedTimeString && (
+              {highlightedTime && (
                 <ReferenceLine 
-                  yAxisId="left" x={highlightedTimeString} stroke="#ef4444" strokeWidth={2.5} strokeDasharray="6 3"
-                  label={{ position: 'top', value: 'ALARM', fill: '#ef4444', fontSize: 11, fontWeight: '900' }} 
+                  yAxisId="left" 
+                  x={highlightedTime} 
+                  stroke="#ef4444" 
+                  strokeWidth={3} 
+                  strokeDasharray="8 4"
+                  label={{ position: 'top', value: 'ALARM', fill: '#ef4444', fontSize: 14, fontWeight: '900' }} 
                 />
               )}
 
@@ -331,8 +344,8 @@ const LogChart: React.FC<LogChartProps> = memo(({ data, highlightedTime }) => {
                   isAnimationActive={false}
                   dot={false}
                   connectNulls={true}
-                  strokeWidth={item.yAxisId === 'right' && item.dataKey.includes('Ht') ? 1.5 : 2}
-                  activeDot={{ r: 5, strokeWidth: 1.5, fill: '#fff', stroke: '#4f46e5' }}
+                  strokeWidth={item.yAxisId === 'right' && item.dataKey.includes('Ht') ? 2 : 2.5}
+                  activeDot={{ r: 6, strokeWidth: 2, fill: '#fff', stroke: '#4f46e5' }}
                   hide={!visibility[item.dataKey]}
                 />
               ))}
@@ -340,15 +353,16 @@ const LogChart: React.FC<LogChartProps> = memo(({ data, highlightedTime }) => {
           </ResponsiveContainer>
         </div>
 
-        <div className="flex flex-col items-center justify-center gap-4 px-3 py-4 bg-gray-50/50 rounded-3xl border border-gray-100 shadow-sm min-w-[90px]">
-          <div className="text-[9px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-lg border border-blue-100 uppercase tracking-widest mb-1">CH-R</div>
+        {/* CH-R Controls */}
+        <div className="flex flex-col items-center justify-center gap-5 px-4 py-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-100 shadow-sm min-w-[110px]">
+          <div className="text-[10px] font-black text-blue-600 bg-blue-100 px-4 py-2 rounded-xl border border-blue-200 uppercase tracking-widest mb-1 shadow-sm">CH-R</div>
           <OscBtnControl 
             label="SCALE" 
             value={rightScale} 
             channel="right" 
             param="scale" 
             colorClass="text-blue-600" 
-            icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 8l8-8 8 8M4 16l8 8 8-8" /></svg>} 
+            icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 8l8-8 8 8M4 16l8 8 8-8" /></svg>} 
           />
           <OscBtnControl 
             label="OFFSET" 
@@ -356,9 +370,9 @@ const LogChart: React.FC<LogChartProps> = memo(({ data, highlightedTime }) => {
             channel="right" 
             param="offset" 
             colorClass="text-blue-500" 
-            icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg>} 
+            icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg>} 
           />
-          <button onClick={resetRight} className="mt-2 w-16 py-1.5 bg-gray-200 hover:bg-blue-500 hover:text-white text-gray-500 rounded-lg text-[9px] font-black uppercase transition-all shadow-sm border border-transparent">RESET</button>
+          <button onClick={resetRight} className="mt-2 w-20 py-2 bg-gray-200 hover:bg-blue-500 hover:text-white text-gray-500 rounded-xl text-[10px] font-black uppercase transition-all shadow-sm active:scale-95">RESET</button>
         </div>
       </div>
     </div>
