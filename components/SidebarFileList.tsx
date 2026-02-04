@@ -33,7 +33,7 @@ const SidebarFileList: React.FC<SidebarFileListProps> = ({
         <h3 className="text-indigo-600 font-black text-xs uppercase tracking-widest">
           [ {isDrive ? 'CLOUD' : 'LOCAL'} ]
         </h3>
-        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{files.length} Files</span>
+        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{files.length} Files</span>
       </div>
       
       <div className="max-h-[350px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
@@ -62,7 +62,7 @@ const SidebarFileList: React.FC<SidebarFileListProps> = ({
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className={`text-[11px] font-black truncate leading-none uppercase ${isActive ? 'text-white' : 'text-gray-800'}`}>
+                  <p className={`text-[12px] font-black truncate leading-none uppercase ${isActive ? 'text-white' : 'text-gray-800'}`}>
                     {name}
                   </p>
                 </div>
@@ -82,7 +82,7 @@ const SidebarFileList: React.FC<SidebarFileListProps> = ({
       </div>
       
       <div className="pt-4 mt-2 border-t border-gray-50 flex flex-col items-center">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest italic text-center">
+        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest italic text-center">
           Select target file
         </p>
       </div>
