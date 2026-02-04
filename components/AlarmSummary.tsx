@@ -29,9 +29,9 @@ const AlarmSummary: React.FC<AlarmSummaryProps> = ({ data, onAlarmClick }) => {
     <div className="bg-white border border-gray-200 rounded-[2rem] p-6 shadow-sm w-full">
       <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
         <h3 className="text-red-600 font-black text-xs uppercase tracking-[0.2em] leading-none">[ ALARM LOG ]</h3>
-        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Jump</span>
+        <span className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">Jump</span>
       </div>
-      <div className="font-mono text-[11px] space-y-2">
+      <div className="font-mono text-[13px] space-y-2">
         <div className="grid grid-cols-4 text-gray-400 font-black border-b border-gray-100 pb-3 mb-3 px-3">
           <span>TIME</span>
           <span>SEQ</span>

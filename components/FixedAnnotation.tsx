@@ -23,8 +23,8 @@ const FixedAnnotation: React.FC = () => {
 
   const Row = ({ label, value, unit = "", color = "text-gray-900" }: { label: string, value: number | string, unit?: string, color?: string }) => (
     <div className="flex justify-between items-center gap-8 py-2.5 border-b border-gray-50 last:border-0 transition-colors">
-      <span className={`text-[11px] font-black uppercase tracking-widest leading-none ${color}`}>{label}</span>
-      <span className={`text-[13px] font-mono font-bold ${color}`}>
+      <span className={`text-[13px] font-black uppercase tracking-widest leading-none ${color}`}>{label}</span>
+      <span className={`text-[16px] font-mono font-bold ${color}`}>
         {typeof value === 'number' ? value.toFixed(1) : value}{unit}
       </span>
     </div>
