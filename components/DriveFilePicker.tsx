@@ -32,7 +32,7 @@ const DriveFilePicker: React.FC<DriveFilePickerProps> = ({ files, onSelect, onCl
             )}
             <div>
               <h2 className="text-lg font-bold text-indigo-900">Cloud Navigator</h2>
-              <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest">Browse Folders & Logs</p>
+              <p className="text-[12px] text-indigo-600 font-bold uppercase tracking-widest">Browse Folders & Logs</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white rounded-full transition-colors text-slate-400 hover:text-slate-600">
@@ -46,7 +46,7 @@ const DriveFilePicker: React.FC<DriveFilePickerProps> = ({ files, onSelect, onCl
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4"></div>
-              <p className="text-sm text-slate-500 font-medium tracking-tight uppercase tracking-widest text-[10px]">Updating Index...</p>
+              <p className="text-sm text-slate-500 font-medium tracking-tight uppercase tracking-widest text-[12px]">Updating Index...</p>
             </div>
           ) : files.length > 0 ? (
             <div className="space-y-1">
@@ -71,7 +71,7 @@ const DriveFilePicker: React.FC<DriveFilePickerProps> = ({ files, onSelect, onCl
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-bold truncate ${isFolder ? 'text-slate-800' : 'text-slate-700'}`}>{file.name}</p>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">
+                      <p className="text-[12px] text-slate-400 uppercase font-bold tracking-tighter">
                         {isFolder ? 'Directory' : `Modified: ${new Date(file.modifiedTime).toLocaleDateString()}`}
                       </p>
                     </div>
@@ -89,7 +89,7 @@ const DriveFilePicker: React.FC<DriveFilePickerProps> = ({ files, onSelect, onCl
           )}
         </div>
         
-        <div className="p-4 bg-slate-50 text-[10px] text-slate-400 font-bold text-center uppercase tracking-widest">
+        <div className="p-4 bg-slate-50 text-[12px] text-slate-400 font-bold text-center uppercase tracking-widest">
           Cloud Diagnostic Storage
         </div>
       </div>
