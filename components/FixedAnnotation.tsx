@@ -34,7 +34,7 @@ const FixedAnnotation: React.FC = () => {
     <div className="bg-white border border-gray-200 p-6 rounded-[2.5rem] shadow-md w-full border-l-[10px] border-l-indigo-600 transition-all">
       <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
         <span className="text-[14px] font-black text-indigo-600 uppercase tracking-[0.2em] leading-none">[ READOUT ]</span>
-        <span className="text-[13px] font-mono font-bold text-gray-600">
+        <span className="text-[14px] font-black font-bold text-gray-600">
           {new Date(data.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
         </span>
       </div>
