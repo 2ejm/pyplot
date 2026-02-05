@@ -228,6 +228,7 @@ const App: React.FC = () => {
   const loadLocalFile = useCallback((file: File) => {
     setLoading(true);
     setFileName(file.name);
+    setSearchTime("");
     setHighlightedTime(null);
     const reader = new FileReader();
     reader.onload = (e) => {
