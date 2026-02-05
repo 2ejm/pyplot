@@ -10,7 +10,7 @@ interface AlarmSummaryProps {
 const AlarmSummary: React.FC<AlarmSummaryProps> = ({ data, onAlarmClick }) => {
   const alarms = React.useMemo(() => {
     // 기존 로직 유지 (alarmSeq === 0인 데이터만 필터링)
-    const alarmRows = data.filter(d => d.alarmSeq === 0);
+    const alarmRows = data.filter(d => d.alarmSeq !== 0);
     const uniqueAlarms: LogEntry[] = [];
     let lastKey = "";
     
