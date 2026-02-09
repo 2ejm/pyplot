@@ -16,16 +16,12 @@ interface DriveFilePickerProps {
   loading: boolean;
 }
 
-// ... 상단 인터페이스 동일
-
-// ... 상단 인터페이스 생략 (DriveFile, DriveFilePickerProps)
-
 const DriveFilePicker: React.FC<DriveFilePickerProps> = ({ files, onSelect, onClose, onBack, canGoBack, loading }) => {
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-1">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-0.5">
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[60vh]">
         {/* Header: 최소한의 높이 */}
-        <div className="px-2 py-1 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div className="px-2 py-0.5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
           <div className="flex items-center gap-1.5">
             {canGoBack && (
               <button onClick={onBack} className="hover:text-indigo-600 p-0.5">

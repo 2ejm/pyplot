@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface DriveFile {
@@ -28,15 +27,19 @@ const SidebarFileList: React.FC<SidebarFileListProps> = ({
   const files = isDrive ? driveFiles : localFiles;
 
   return (
-    <div className="bg-white border border-gray-200 p-6 rounded-[2rem] shadow-sm w-full flex flex-col gap-4 transition-all">
-      <div className="flex justify-between items-center border-b border-indigo-50 pb-4">
-        <h3 className="text-indigo-600 font-black text-xs uppercase tracking-widest">
-          [ {isDrive ? 'CLOUD' : 'LOCAL'} ]
+    <div className="bg-white border border-gray-100 p-1.5 rounded-xl shadow-sm w-full flex flex-col transition-all">
+      {/* Header: 여백 최소화 및 텍스트 강조 */}
+      <div className="flex justify-between items-center border-b border-slate-50 px-2 pb-1.5 mb-1">
+        <h3 className="text-indigo-600 font-black text-[11px] uppercase tracking-tighter">
+          [ {isDrive ? 'Cloud Index' : 'Local Index'} ]
         </h3>
-        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{files.length} Files</span>
+        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
+          {files.length} ITEMS
+        </span>
       </div>
       
-      <div className="max-h-[350px] overflow-y-auto space-y-1 pr-2 custom-scrollbar">
+      {/* List Body: space-y-[1px]로 밀착 배치 */}
+      <div className="max-h-[350px] overflow-y-auto space-y-[1px] custom-scrollbar">
         {files.length > 0 ? (
           files.map((item, idx) => {
             const name = isDrive ? (item as DriveFile).name : (item as File).name;
@@ -46,44 +49,43 @@ const SidebarFileList: React.FC<SidebarFileListProps> = ({
               <button
                 key={isDrive ? (item as DriveFile).id : `${name}-${idx}`}
                 onClick={() => isDrive ? onSelectDrive(item as DriveFile) : onSelectLocal(item as File)}
-                className={`w-full text-left p-4 rounded-xl border transition-all flex items-center gap-4 group ${
+                // 아이콘 제거, py-1(알람 리스트와 동일), text-[14px] 적용
+                className={`w-full text-left py-1 px-3 rounded-lg border-b border-transparent transition-all flex items-center justify-between group active:scale-[0.98] ${
                   isActive 
-                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-xl' 
-                    : 'bg-gray-50 border-transparent hover:border-indigo-200 hover:bg-white text-gray-600'
+                    ? 'bg-indigo-600 text-white shadow-md z-10' 
+                    : 'bg-transparent hover:bg-indigo-50 text-slate-600 border-slate-50/50'
                 }`}
               >
-                <div className={`flex-shrink-0 ${isActive ? 'text-indigo-100' : 'text-gray-400 group-hover:text-indigo-500'}`}>
-                  {isDrive ? (
-                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  )}
-                </div>
                 <div className="min-w-0 flex-1">
-                  <p className={`text-[12px] font-black truncate leading-none uppercase ${isActive ? 'text-white' : 'text-gray-800'}`}>
+                  <p className={`text-[14px] font-bold truncate leading-none ${isActive ? 'text-white' : 'text-slate-700'}`}>
                     {name}
                   </p>
                 </div>
-                {isActive && (
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse shadow-md" />
+
+                {/* 활성화 상태일 때만 작은 인디케이터 표시 */}
+                {isActive ? (
+                  <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse ml-2" />
+                ) : (
+                  <span className="text-[10px] text-slate-300 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+                    SELECT
+                  </span>
                 )}
               </button>
             );
           })
         ) : (
-          <div className="py-16 text-center bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100">
-            <p className="text-gray-300 italic font-black text-[10px] uppercase tracking-[0.3em]">
-              Empty
+          <div className="py-10 text-center bg-slate-50/50 rounded-lg border border-dashed border-slate-100 mx-1">
+            <p className="text-slate-300 font-black text-[10px] uppercase tracking-widest">
+              No Files
             </p>
           </div>
         )}
       </div>
       
-      <div className="pt-4 mt-2 border-t border-gray-50 flex flex-col items-center">
-        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest italic text-center">
-          Select target file
+      {/* Footer: 높이 최소화 */}
+      <div className="mt-1 pt-1 border-t border-slate-50 flex justify-center">
+        <p className="text-[9px] font-black text-slate-300 uppercase tracking-tighter italic">
+          System Storage Navigator
         </p>
       </div>
     </div>
