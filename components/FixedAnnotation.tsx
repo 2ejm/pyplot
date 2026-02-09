@@ -31,7 +31,7 @@ const FixedAnnotation: React.FC = () => {
   );
 
   return (
-    <div className="bg-white border border-gray-200 p-3 rounded-[2.5rem] shadow-md w-full transition-all">
+    <div className="bg-white border border-gray-200 p-3 rounded-xl w-full transition-all">
       <div className="flex justify-between items-center mb-2 pb-1 border-b border-gray-100">
         <span className="text-[14px] font-black text-indigo-600 uppercase tracking-[0.2em] leading-none">[ READOUT ]</span>
         <span className="text-[14px] font-black font-bold text-gray-600">
