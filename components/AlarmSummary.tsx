@@ -35,14 +35,14 @@ const AlarmSummary: React.FC<AlarmSummaryProps> = ({ data, onAlarmClick }) => {
   }, [data]);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-[2rem] p-6 shadow-sm w-full">
-      <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
+    <div className="bg-white border border-gray-200 rounded-[2rem] p-3 shadow-sm w-full">
+      <div className="flex justify-between items-center mb-2 pb-1 border-b border-gray-100">
         <h3 className="text-red-600 font-black text-xs uppercase tracking-[0.2em] leading-none">[ ALARM LOG ]</h3>
       </div>
       
-      <div className="font-mono text-[13px] space-y-1">
+      <div className="font-mono text-[13px] space-y-0.5">
         {/* 헤더 섹션 */}
-        <div className="grid grid-cols-4 text-gray-400 font-black border-b border-gray-100 py-1 mb-1 px-3">
+        <div className="grid grid-cols-4 text-gray-400 font-black border-b border-gray-100 py-0.5 mb-0.5 px-1">
           <span>TIME</span>
           <span>SEQ</span>
           <span>CODE1</span>
