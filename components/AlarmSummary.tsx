@@ -11,25 +11,26 @@ const AlarmSummary: React.FC<AlarmSummaryProps> = ({ data, onAlarmClick }) => {
   const alarms = React.useMemo(() => {
     const uniqueAlarms: LogEntry[] = [];
     
-    // 각 Seq(1, 2, 3...)별로 마지막 상태를 추적하기 위한 Map
+    // 각 Seq별 이전 상태 저장 (초기값 undefined)
     const lastStateMap = new Map<number, number>();
 
-    // 1. 전체 데이터를 순회하며 상태 변화(발생/해제) 감지
     data.forEach(row => {
       if (row.alarmSeq === 0) return;
 
       const currentCodeSum = row.alarmCode1 + row.alarmCode2;
       const lastCodeSum = lastStateMap.get(row.alarmSeq);
 
-      // 해당 Seq의 상태가 이전과 달라졌을 때만 기록 추가
-      if (lastCodeSum !== currentCodeSum) {
+      // 1. 이전 상태 기록이 있고(undefined 아님),
+      // 2. 현재 상태가 이전 상태와 다를 때만 push
+      if (lastCodeSum !== undefined && lastCodeSum !== currentCodeSum) {
         uniqueAlarms.push(row);
-        lastStateMap.set(row.alarmSeq, currentCodeSum);
       }
+
+      // 현재 상태를 Map에 업데이트 (다음 비교를 위해)
+      lastStateMap.set(row.alarmSeq, currentCodeSum);
     });
 
-    // 2. 시간 순서대로 정렬 (00:00 -> 23:59 위에서 아래로)
-    // timestamp 기준으로 오름차순 정렬합니다.
+    // 시간순 정렬
     return uniqueAlarms.sort((a, b) => a.timestamp - b.timestamp);
   }, [data]);
 
@@ -40,7 +41,7 @@ const AlarmSummary: React.FC<AlarmSummaryProps> = ({ data, onAlarmClick }) => {
         <span className="text-[12px] font-bold text-gray-400 uppercase tracking-widest font-mono">Full History</span>
       </div>
       
-      <div className="font-mono text-[13px] space-y-2">
+      <div className="font-mono text-[13px] space-y-1">
         {/* 헤더 섹션 */}
         <div className="grid grid-cols-4 text-gray-400 font-black border-b border-gray-100 pb-3 mb-3 px-3">
           <span>TIME</span>
@@ -50,16 +51,16 @@ const AlarmSummary: React.FC<AlarmSummaryProps> = ({ data, onAlarmClick }) => {
         </div>
         
         {/* 리스트 섹션: max-h를 늘리거나 제거하여 전체를 볼 수 있게 조정 가능 */}
-        <div className="max-h-[500px] overflow-y-auto space-y-1 custom-scrollbar pr-1">
+        <div className="max-h-[300px] overflow-y-auto space-y-[3px] custom-scrollbar pr-1">
           {alarms.length > 0 ? (
             alarms.map((row, i) => {
               const isCleared = row.alarmCode1 === 0 && row.alarmCode2 === 0;
               
-              return (
+              return (	
                 <button 
                   key={`${row.timestamp}-${row.alarmSeq}-${i}`} 
                   onClick={() => onAlarmClick(row.timestamp)}
-                  className={`grid grid-cols-4 w-full text-left font-bold border-b border-gray-50 py-3 hover:bg-gray-50 transition-all rounded-xl px-3 active:scale-95 group ${
+                  className={`grid grid-cols-4 w-full text-left font-bold border-b border-gray-50 py-1 hover:bg-gray-50 transition-all rounded-xl px-3 active:scale-95 group ${
                     isCleared ? 'text-green-500' : 'text-red-500'
                   }`}
                 >

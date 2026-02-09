@@ -354,8 +354,8 @@ const App: React.FC = () => {
             <h2 className="text-4xl font-black text-gray-900 mb-6 tracking-tighter uppercase text-center px-10">System Ready</h2>
             <p className="text-gray-400 mb-12 max-w-sm text-center text-sm font-bold uppercase tracking-[0.4em] leading-relaxed">Import telemetry packets to begin visualization</p>
             <div className="flex gap-8">
-               <button onClick={handleDriveClick} className="px-10 py-5 bg-indigo-600 text-white rounded-2xl font-black text-xs shadow-2xl hover:bg-indigo-700 transition-all active:scale-95 uppercase tracking-widest border border-indigo-500">Cloud Storage</button>
-               <button onClick={() => fileInputRef.current?.click()} className="px-10 py-5 bg-white border border-gray-200 rounded-2xl font-black text-xs text-gray-700 hover:bg-gray-50 transition-all active:scale-95 uppercase tracking-widest shadow-sm">Local Drive</button>
+               <button onClick={handleDriveClick} className="px-10 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs shadow-2xl hover:bg-indigo-700 transition-all active:scale-95 uppercase tracking-widest border border-indigo-500">Cloud Storage</button>
+               <button onClick={() => fileInputRef.current?.click()} className="px-10 py-3 bg-white border border-gray-200 rounded-2xl font-black text-xs text-gray-700 hover:bg-gray-50 transition-all active:scale-95 uppercase tracking-widest shadow-sm">Local Drive</button>
             </div>
           </div>
         ) : (
@@ -387,7 +387,7 @@ const App: React.FC = () => {
                   />
                 </div>
                 
-                <div className="mt-6 px-8 py-5 bg-gray-50 border-t border-gray-100 rounded-b-[2rem] flex flex-col gap-5">
+                <div className="mt-6 px-8 py-3 bg-gray-50 border-t border-gray-100 rounded-b-[2rem] flex flex-col gap-5">
                   <div className="flex items-center justify-between px-2">
                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">START: {allData[0]?.time}</span>
                     <span className="text-xs font-mono font-black text-indigo-600 uppercase tracking-tight bg-indigo-100/50 px-5 py-2 rounded-xl border border-indigo-200 shadow-sm">
@@ -426,16 +426,16 @@ const App: React.FC = () => {
                       step="1" 
                       value={searchTime} 
                       onChange={(e) => setSearchTime(e.target.value)} 
-                      className="flex-1 px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-base font-mono font-bold text-indigo-700 outline-none focus:ring-8 focus:ring-indigo-500/10" 
+                      className="flex-1 px-5 py-2 bg-gray-50 border border-gray-200 rounded-2xl text-base font-mono font-bold text-indigo-700 outline-none focus:ring-8 focus:ring-indigo-500/10" 
                     />
-                    <button onClick={() => jumpToTime(searchTime)} className="px-8 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg active:scale-95">Go</button>
+                    <button onClick={() => jumpToTime(searchTime)} className="px-8 py-2 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg active:scale-95">Go</button>
                   </div>
                 </div>
                 <div className="bg-white border border-gray-200 rounded-[2rem] p-6 shadow-sm flex flex-col gap-4">
                   <span className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] px-1">Scale Config (Window)</span>
                   <div className="grid grid-cols-5 gap-3">
                     {DURATIONS.map((d) => (
-                      <button key={d.value} onClick={() => setDuration(d.value)} className={`py-4 text-xs font-black rounded-2xl transition-all border ${duration === d.value ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}>{d.label}</button>
+                      <button key={d.value} onClick={() => setDuration(d.value)} className={`py-2 text-xs font-black rounded-2xl transition-all border ${duration === d.value ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}>{d.label}</button>
                     ))}
                   </div>
                 </div>

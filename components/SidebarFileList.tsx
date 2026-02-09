@@ -36,7 +36,7 @@ const SidebarFileList: React.FC<SidebarFileListProps> = ({
         <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{files.length} Files</span>
       </div>
       
-      <div className="max-h-[350px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+      <div className="max-h-[350px] overflow-y-auto space-y-1 pr-2 custom-scrollbar">
         {files.length > 0 ? (
           files.map((item, idx) => {
             const name = isDrive ? (item as DriveFile).name : (item as File).name;
