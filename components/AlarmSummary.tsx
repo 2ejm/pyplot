@@ -59,7 +59,7 @@ const AlarmSummary: React.FC<AlarmSummaryProps> = ({ data, onAlarmClick }) => {
                 <button 
                   key={`${row.timestamp}-${row.alarmSeq}-${i}`} 
                   onClick={() => onAlarmClick(row.timestamp)}
-                  className={`grid grid-cols-4 w-full text-left font-bold border-b border-gray-50 py-1 hover:bg-gray-50 transition-all rounded-xl px-3 active:scale-95 group ${
+                  className={`grid grid-cols-4 w-full text-left text-[14px] font-bold border-b border-gray-50 py-1 hover:bg-gray-50 transition-all rounded-xl px-3 active:scale-95 group ${
                     isCleared ? 'text-green-500' : 'text-red-500'
                   }`}
                 >
@@ -73,7 +73,7 @@ const AlarmSummary: React.FC<AlarmSummaryProps> = ({ data, onAlarmClick }) => {
               );
             })
           ) : (
-            <div className="py-12 text-center text-gray-300 italic font-black uppercase tracking-widest text-[10px]">
+            <div className="py-12 text-center text-gray-300 italic font-black uppercase tracking-widest text-[12px]">
               System Nominal
             </div>
           )}
