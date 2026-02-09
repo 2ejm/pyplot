@@ -15,7 +15,7 @@ const FixedAnnotation: React.FC = () => {
 
   if (!data) {
     return (
-      <div className="bg-white border border-gray-200 rounded-[2rem] p-10 shadow-sm w-full min-h-[300px] flex flex-col items-center justify-center border-dashed">
+      <div className="bg-white border border-gray-200 rounded-xl p-10 shadow-sm w-full min-h-[300px] flex flex-col items-center justify-center border-dashed">
         <p className="text-gray-300 text-sm font-black uppercase tracking-[0.3em] italic">Probe Inactive</p>
       </div>
     );

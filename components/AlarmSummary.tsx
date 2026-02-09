@@ -35,7 +35,7 @@ const AlarmSummary: React.FC<AlarmSummaryProps> = ({ data, onAlarmClick }) => {
   }, [data]);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-[2rem] p-3 shadow-sm w-full">
+    <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm w-full">
       <div className="flex justify-between items-center mb-2 pb-1 border-b border-gray-100">
         <h3 className="text-red-600 font-black text-xs uppercase tracking-[0.2em] leading-none">[ ALARM LOG ]</h3>
       </div>
