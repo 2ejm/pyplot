@@ -387,10 +387,10 @@ const App: React.FC = () => {
                   />
                 </div>
                 
-                <div className="mt-6 px-8 py-3 bg-gray-50 border-t border-gray-100 rounded-b-[2rem] flex flex-col gap-5">
+                <div className="mt-6 px-8 py-2 bg-gray-50 border-t border-gray-100 rounded-b-[2rem] flex flex-col gap-3">
                   <div className="flex items-center justify-between px-2">
                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">START: {allData[0]?.time}</span>
-                    <span className="text-xs font-mono font-black text-indigo-600 uppercase tracking-tight bg-indigo-100/50 px-5 py-2 rounded-xl border border-indigo-200 shadow-sm">
+                    <span className="text-xs font-mono font-black text-indigo-600 uppercase tracking-tight bg-indigo-100/50 px-5 py-1 rounded-xl border border-indigo-200 shadow-sm">
                       WINDOW: {new Date(startTime).toLocaleTimeString('en-GB', { hour12: false })}
                     </span>
                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">END: {allData[allData.length-1]?.time}</span>
@@ -417,7 +417,7 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="bg-white border border-gray-200 rounded-[2rem] p-6 shadow-sm flex flex-col gap-4">
                   <span className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] px-1">Precise Jump</span>
                   <div className="flex gap-4">
@@ -442,7 +442,7 @@ const App: React.FC = () => {
               </div>
             </div>
             
-            <div className="lg:w-96 flex flex-col gap-6 flex-shrink-0 overflow-y-auto pr-2 custom-scrollbar pb-6">
+            <div className="lg:w-80 flex flex-col gap-2 flex-shrink-0 overflow-y-auto pr-2 custom-scrollbar pb-6">
               <AlarmSummary data={allData} onAlarmClick={handleAlarmJump} />
               <FixedAnnotation />
               <SidebarFileList 
