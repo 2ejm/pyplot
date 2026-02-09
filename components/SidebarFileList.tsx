@@ -30,8 +30,8 @@ const SidebarFileList: React.FC<SidebarFileListProps> = ({
     <div className="bg-white border border-gray-100 p-1.5 rounded-xl shadow-sm w-full flex flex-col transition-all">
       {/* Header: 여백 최소화 및 텍스트 강조 */}
       <div className="flex justify-between items-center border-b border-slate-50 px-2 pb-1.5 mb-1">
-        <h3 className="text-indigo-600 font-black text-[11px] uppercase tracking-tighter">
-          [ {isDrive ? 'Cloud Index' : 'Local Index'} ]
+        <h3 className="text-indigo-600 font-black text-[14px] uppercase tracking-tighter">
+          [ {isDrive ? 'Cloud Index' : 'Local'} ]
         </h3>
         <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
           {files.length} ITEMS
@@ -39,7 +39,7 @@ const SidebarFileList: React.FC<SidebarFileListProps> = ({
       </div>
       
       {/* List Body: space-y-[1px]로 밀착 배치 */}
-      <div className="max-h-[350px] overflow-y-auto space-y-[1px] custom-scrollbar">
+      <div className="max-h-[350px] overflow-y-auto space-y-[2px] custom-scrollbar">
         {files.length > 0 ? (
           files.map((item, idx) => {
             const name = isDrive ? (item as DriveFile).name : (item as File).name;
