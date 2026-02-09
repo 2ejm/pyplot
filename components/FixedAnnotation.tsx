@@ -31,14 +31,14 @@ const FixedAnnotation: React.FC = () => {
   );
 
   return (
-    <div className="bg-white border border-gray-200 p-6 rounded-[2.5rem] shadow-md w-full border-l-[10px] border-l-indigo-600 transition-all">
-      <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
+    <div className="bg-white border border-gray-200 p-3 rounded-[2.5rem] shadow-md w-full border-l-[10px] border-l-indigo-600 transition-all">
+      <div className="flex justify-between items-center mb-2 pb-1 border-b border-gray-100">
         <span className="text-[14px] font-black text-indigo-600 uppercase tracking-[0.2em] leading-none">[ READOUT ]</span>
         <span className="text-[14px] font-black font-bold text-gray-600">
           {new Date(data.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
         </span>
       </div>
-      <div className="space-y-1">
+      <div className="flex flex-col gap-y-0">
         <Row label="AIR TEMPERATURE" value={data.airTemp} unit="℃" color="text-red-600" />
         <Row label="AIR HEATER POWER" value={data.airHtLvl} color="text-sky-600" />
         <Row label="AIR HEATER PT100" value={data.airHtPt100} unit="℃" color="text-fuchsia-600" />

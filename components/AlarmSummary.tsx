@@ -38,12 +38,11 @@ const AlarmSummary: React.FC<AlarmSummaryProps> = ({ data, onAlarmClick }) => {
     <div className="bg-white border border-gray-200 rounded-[2rem] p-6 shadow-sm w-full">
       <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
         <h3 className="text-red-600 font-black text-xs uppercase tracking-[0.2em] leading-none">[ ALARM LOG ]</h3>
-        <span className="text-[12px] font-bold text-gray-400 uppercase tracking-widest font-mono">Full History</span>
       </div>
       
       <div className="font-mono text-[13px] space-y-1">
         {/* 헤더 섹션 */}
-        <div className="grid grid-cols-4 text-gray-400 font-black border-b border-gray-100 pb-3 mb-3 px-3">
+        <div className="grid grid-cols-4 text-gray-400 font-black border-b border-gray-100 py-1 mb-1 px-3">
           <span>TIME</span>
           <span>SEQ</span>
           <span>CODE1</span>
@@ -51,7 +50,7 @@ const AlarmSummary: React.FC<AlarmSummaryProps> = ({ data, onAlarmClick }) => {
         </div>
         
         {/* 리스트 섹션: max-h를 늘리거나 제거하여 전체를 볼 수 있게 조정 가능 */}
-        <div className="max-h-[300px] overflow-y-auto space-y-[3px] custom-scrollbar pr-1">
+        <div className="max-h-[120px] overflow-y-auto space-y-[3px] custom-scrollbar pr-1">
           {alarms.length > 0 ? (
             alarms.map((row, i) => {
               const isCleared = row.alarmCode1 === 0 && row.alarmCode2 === 0;
