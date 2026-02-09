@@ -53,42 +53,36 @@ const DriveFilePicker: React.FC<DriveFilePickerProps> = ({ files, onSelect, onCl
               {files.map((file) => {
                 const isFolder = file.mimeType === 'application/vnd.google-apps.folder';
                 return (
-                  <button
-		  key={file.id}
-		  onClick={() => onSelect(file)}
-		  // p-1을 py-0.5로 변경하여 위아래 여백을 더 제거했습니다.
-		  className="w-full text-left py-0.5 px-2 rounded-md hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all flex items-center gap-3 group"
-		>
-		  {/* 아이콘 영역: h-3에서 h-5(또는 6)로 텍스트 높이에 맞게 재조정 (너무 낮으면 아이콘이 깨짐) */}
-		  {/* 대신 배경색을 빼거나 크기를 더 컴팩트하게 w-6 h-6으로 설정 */}
-		  <div className={`w-6 h-6 rounded flex items-center justify-center transition-colors flex-shrink-0 ${isFolder ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-500'}`}>
-		    {isFolder ? (
-		      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-			<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-		      </svg>
-		    ) : (
-		      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-			<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-		      </svg>
-		    )}
-		  </div>
+                 <button
+  key={file.id}
+  onClick={() => onSelect(file)}
+  // py-0 (상하 패딩 제거), px-2 (좌우만 유지)
+  className="w-full text-left py-0.5 px-2 rounded hover:bg-slate-50 border-b border-gray-50 last:border-0 transition-all flex items-center justify-between group"
+>
+  <div className="flex items-center gap-2 flex-1 min-w-0">
+    {/* 폴더/파일 구분 표시기 (아이콘 대신 작은 점이나 텍스트로 대체) */}
+    <span className={`text-[10px] font-black flex-shrink-0 ${isFolder ? 'text-amber-500' : 'text-slate-300'}`}>
+      {isFolder ? '●' : '○'}
+    </span>
+    
+    {/* 파일명: 폰트 크기 유지, 높이 최소화 */}
+    <p className={`text-sm font-bold truncate leading-tight ${isFolder ? 'text-slate-800' : 'text-slate-700'}`}>
+      {file.name}
+    </p>
+  </div>
 
-		  <div className="flex-1 min-w-0 flex flex-row items-center gap-2">
-		    {/* 텍스트 크기는 유지, leading-none으로 줄 간격 제거 */}
-		    <p className={`text-sm font-bold truncate leading-none ${isFolder ? 'text-slate-800' : 'text-slate-700'}`}>
-		      {file.name}
-		    </p>
-		    {/* 부가 정보(날짜)를 아래가 아닌 옆으로 배치하여 세로 높이를 획기적으로 줄임 */}
-		    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter leading-none whitespace-nowrap">
-		      {isFolder ? '[DIR]' : `| ${new Date(file.modifiedTime).toLocaleDateString()}`}
-		    </p>
-		  </div>
-
-		  {/* 오른쪽 화살표 크기 유지하되 leading에 영향 없도록 조정 */}
-		  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-slate-300 group-hover:text-indigo-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-		    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-		  </svg>
-		</button>
+  {/* 우측 정보: 날짜를 파일명과 같은 선상에 배치 */}
+  <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+    <p className="text-[10px] text-slate-400 font-mono font-bold leading-none">
+      {isFolder ? 'DIR' : new Date(file.modifiedTime).toLocaleDateString('ko-KR', {month: '2-digit', day: '2-digit'})}
+    </p>
+    
+    {/* 화살표도 작게 축소 */}
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-slate-300 group-hover:text-indigo-400" viewBox="0 0 20 20" fill="currentColor">
+      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+    </svg>
+  </div>
+</button>
                 );
               })}
             </div>
