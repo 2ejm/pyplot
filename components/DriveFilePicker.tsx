@@ -19,7 +19,7 @@ interface DriveFilePickerProps {
 
 const DriveFilePicker: React.FC<DriveFilePickerProps> = ({ files, onSelect, onClose, onBack, canGoBack, loading }) => {
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-1">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]">
         <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-indigo-50">
           <div className="flex items-center gap-3">
@@ -49,22 +49,22 @@ const DriveFilePicker: React.FC<DriveFilePickerProps> = ({ files, onSelect, onCl
               <p className="text-sm text-slate-500 font-medium tracking-tight uppercase tracking-widest text-[12px]">Updating Index...</p>
             </div>
           ) : files.length > 0 ? (
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {files.map((file) => {
                 const isFolder = file.mimeType === 'application/vnd.google-apps.folder';
                 return (
                   <button
                     key={file.id}
                     onClick={() => onSelect(file)}
-                    className="w-full text-left p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all flex items-center gap-3 group"
+                    className="w-full text-left p-1 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all flex items-center gap-3 group"
                   >
-                    <div className={`w-10 h-5 rounded-lg flex items-center justify-center transition-colors ${isFolder ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-500'}`}>
+                    <div className={`w-10 h-3 rounded-lg flex items-center justify-center transition-colors ${isFolder ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-500'}`}>
                       {isFolder ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                         </svg>
                       ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                       )}
@@ -75,7 +75,7 @@ const DriveFilePicker: React.FC<DriveFilePickerProps> = ({ files, onSelect, onCl
                         {isFolder ? 'Directory' : `Modified: ${new Date(file.modifiedTime).toLocaleDateString()}`}
                       </p>
                     </div>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-300 group-hover:text-indigo-400 transition-colors" viewBox="0 0 20 20" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-4 text-slate-300 group-hover:text-indigo-400 transition-colors" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                     </svg>
                   </button>
@@ -89,7 +89,7 @@ const DriveFilePicker: React.FC<DriveFilePickerProps> = ({ files, onSelect, onCl
           )}
         </div>
         
-        <div className="p-4 bg-slate-50 text-[12px] text-slate-400 font-bold text-center uppercase tracking-widest">
+        <div className="p-1 bg-slate-50 text-[12px] text-slate-400 font-bold text-center uppercase tracking-widest">
           Cloud Diagnostic Storage
         </div>
       </div>
