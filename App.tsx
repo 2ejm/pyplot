@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { LogEntry } from './types';
 import { parseLogFile } from './services/parserService';
@@ -6,6 +5,8 @@ import LogChart from './components/LogChart';
 import AlarmSummary from './components/AlarmSummary';
 import FixedAnnotation from './components/FixedAnnotation';
 import SidebarFileList from './components/SidebarFileList';
+// 1. html2canvas 임포트 (npm install html2canvas 필요)
+import html2canvas from 'html2canvas';
 
 declare var gapi: any;
 declare var google: any;
@@ -30,7 +31,6 @@ const App: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [highlightedTime, setHighlightedTime] = useState<number | null>(null);
   
-  // Persistent Chart Settings across file loads
   const [leftOffset, setLeftOffset] = useState(0);
   const [leftScale, setLeftScale] = useState(120);
   const [rightOffset, setRightOffset] = useState(0);
@@ -47,6 +47,9 @@ const App: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
+  
+  // 1. 그래프 "알맹이"만 참조하기 위한 Ref
+  const chartOnlyRef = useRef<HTMLDivElement>(null);
 
   const timeBoundaries = useMemo(() => {
     if (allData.length === 0) return { min: 0, max: 0, total: 0 };
@@ -66,14 +69,41 @@ const App: React.FC = () => {
     });
   }, [duration, timeBoundaries]);
 
+
+
+  const handleDownloadChart = async () => {
+    if (!chartOnlyRef.current) return;
+    
+    try {
+      setLoading(true);
+      
+      // html2canvas 옵션: 그래프 외곽의 여백이나 버튼을 제외하고 
+      // 딱 chartOnlyRef가 감싸는 영역만 캡처합니다.
+      const canvas = await html2canvas(chartOnlyRef.current, {
+        backgroundColor: '#ffffff', // 배경을 흰색으로 강제 (투명 방지)
+        scale: 2,
+        logging: false,
+        // 만약 특정 클래스(.no-export)를 가진 요소를 제외하고 싶다면 아래 옵션 사용 가능
+        ignoreElements: (element) => element.classList.contains('no-export')
+      });
+      
+      const image = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.href = image;
+      link.download = `CHART_${fileName || 'data'}_${new Date().getTime()}.png`;
+      link.click();
+    } catch (err) {
+      setErrorInfo("Failed to export chart image.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (allData.length === 0) return;
-      if (e.key === 'ArrowLeft') {
-        scrollBy(-0.05);
-      } else if (e.key === 'ArrowRight') {
-        scrollBy(0.05);
-      }
+      if (e.key === 'ArrowLeft') scrollBy(-0.05);
+      else if (e.key === 'ArrowRight') scrollBy(0.05);
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -85,11 +115,9 @@ const App: React.FC = () => {
       const parts = timeStr.split(':').map(Number);
       const [h, m, s = 0] = parts;
       if (isNaN(h) || isNaN(m)) return;
-      
       const targetDate = new Date(allData[0].timestamp);
       targetDate.setHours(h, m, s, 0);
       const targetTs = targetDate.getTime();
-      
       const closest = allData.reduce((prev, curr) => 
         Math.abs(curr.timestamp - targetTs) < Math.abs(prev.timestamp - targetTs) ? curr : prev
       );
@@ -97,6 +125,7 @@ const App: React.FC = () => {
     } catch (e) {}
   };
 
+  // --- Google API Logic (생략/유지) ---
   const initializeGoogleApi = useCallback(async () => {
     setErrorInfo(null);
     setApiReady(false);
@@ -270,15 +299,12 @@ const App: React.FC = () => {
   const visibleData = useMemo(() => {
     if (!allData || allData.length === 0) return [];
     const endTs = startTime + duration;
-    // Inclusive check (<= endTs) to prevent edge case missing points
     const inRange = allData.filter(d => d.timestamp >= startTime && d.timestamp <= endTs);
     const TARGET_POINTS = 600;
     
     if (inRange.length > TARGET_POINTS) {
       const step = Math.ceil(inRange.length / TARGET_POINTS);
       let sampled = inRange.filter((_, idx) => idx % step === 0);
-      
-      // Ensure the exact alarm point is injected into the data array if it's currently visible
       if (highlightedTime && highlightedTime >= startTime && highlightedTime <= endTs) {
         const hasPoint = sampled.some(p => p.timestamp === highlightedTime);
         if (!hasPoint) {
@@ -324,18 +350,28 @@ const App: React.FC = () => {
           </div>
           <div>
             <h1 className="text-xl font-black text-gray-900 tracking-tight leading-none uppercase">MED-ANALYZER</h1>
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.25em] mt-1 italic"></p>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
+          {/* 다운로드 버튼 추가 */}
+          {allData.length > 0 && (
+            <button 
+              onClick={handleDownloadChart}
+              className="px-5 py-3 bg-emerald-600 text-white rounded-2xl text-xs font-black transition-all shadow-md hover:bg-emerald-700 active:scale-95 uppercase tracking-widest flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Export Chart
+            </button>
+          )}
+
           <button onClick={handleDriveClick} className="px-6 py-3 bg-white text-gray-700 border border-gray-200 rounded-2xl text-xs font-black transition-all shadow-sm uppercase tracking-widest flex items-center gap-3 hover:bg-gray-50 active:scale-95">
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor"><path d="M15.75 14.25L10.5 5.25L5.25 14.25H15.75ZM22.5 14.25H18.75L13.5 5.25H17.25L22.5 14.25ZM9.75 18.75H14.25L19.5 9.75L15 9.75L9.75 18.75ZM1.5 14.25L6.75 5.25H10.5L5.25 14.25H1.5ZM4.5 18.75H9L13.5 9.75H9L4.5 18.75ZM15 18.75H19.5L22.5 14.25H18L15 18.75Z"/></svg>
-            Cloud Repository
+            Cloud
           </button>
           
           <input type="file" ref={fileInputRef} onChange={(e) => handleFilesAdded(Array.from(e.target.files || []))} className="hidden" multiple accept=".log,.txt" />
-          <button onClick={() => fileInputRef.current?.click()} className="px-6 py-3 bg-indigo-600 rounded-2xl text-xs font-black text-white hover:bg-indigo-700 transition-all shadow-md uppercase tracking-widest">Import Logs</button>
+          <button onClick={() => fileInputRef.current?.click()} className="px-6 py-3 bg-indigo-600 rounded-2xl text-xs font-black text-white hover:bg-indigo-700 transition-all shadow-md uppercase tracking-widest">Import</button>
           
           {allData.length > 0 && (
             <button onClick={handleReset} className="p-3 text-gray-400 hover:text-red-500 bg-white rounded-xl border border-gray-200 shadow-sm transition-colors active:scale-95">
@@ -352,7 +388,6 @@ const App: React.FC = () => {
                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
             </div>
             <h2 className="text-4xl font-black text-gray-900 mb-6 tracking-tighter uppercase text-center px-10">System Ready</h2>
-            <p className="text-gray-400 mb-12 max-w-sm text-center text-sm font-bold uppercase tracking-[0.4em] leading-relaxed">Import telemetry packets to begin visualization</p>
             <div className="flex gap-8">
                <button onClick={handleDriveClick} className="px-10 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs shadow-2xl hover:bg-indigo-700 transition-all active:scale-95 uppercase tracking-widest border border-indigo-500">Cloud Storage</button>
                <button onClick={() => fileInputRef.current?.click()} className="px-10 py-3 bg-white border border-gray-200 rounded-2xl font-black text-xs text-gray-700 hover:bg-gray-50 transition-all active:scale-95 uppercase tracking-widest shadow-sm">Local Drive</button>
@@ -361,16 +396,15 @@ const App: React.FC = () => {
         ) : (
           <div className="flex flex-col lg:flex-row h-full gap-6">
             <div className="flex-1 min-h-0 flex flex-col gap-6 relative">
-              {/* Specialized Loading Overlay for Chart Area */}
               {loading && (
                 <div className="absolute inset-0 z-50 bg-white/60 backdrop-blur-[2px] rounded-[2rem] flex flex-col items-center justify-center">
                    <div className="w-16 h-16 border-[5px] border-indigo-100 border-t-indigo-500 rounded-full animate-spin"></div>
-                   <p className="font-black mt-6 text-indigo-400 uppercase tracking-[0.3em] text-[10px]">Processing Stream...</p>
                 </div>
               )}
               
+              {/* 3. chartContainerRef 지정: 이 영역 내부만 이미지로 저장됨 */}
               <div className="flex-1 min-h-0 bg-white rounded-[2rem] border border-gray-200 p-4 shadow-sm relative overflow-hidden flex flex-col">
-                <div className="flex-1 min-h-0">
+                <div ref={chartOnlyRef} className="flex-1 min-h-0">
                   <LogChart 
                     data={visibleData} 
                     highlightedTime={highlightedTime}
@@ -387,7 +421,8 @@ const App: React.FC = () => {
                   />
                 </div>
                 
-                <div className="mt-6 px-8 py-2 bg-gray-50 border-t border-gray-100 rounded-b-[2rem] flex flex-col gap-3">
+                <div className="mt-6 px-8 py-2 bg-gray-50 border-t border-gray-100 rounded-b-[2rem] flex flex-col gap-3 no-export">
+                  {/* 타임라인 컨트롤 영역 (저장 시 포함됨) */}
                   <div className="flex items-center justify-between px-2">
                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">START: {allData[0]?.time}</span>
                     <span className="text-xs font-mono font-black text-indigo-600 uppercase tracking-tight bg-indigo-100/50 px-5 py-1 rounded-xl border border-indigo-200 shadow-sm">
