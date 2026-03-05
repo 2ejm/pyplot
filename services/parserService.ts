@@ -1,8 +1,7 @@
-
 import { LogEntry } from '../types';
 
 /**
- * Converts BCD bytes to float
+ * BCD 바이트를 float로 변환
  */
 export const bcdToFloat = (bytes: number[], decimalPlaces: number = 2): number => {
   if (!bytes || bytes.length === 0) return 0;
@@ -13,6 +12,37 @@ export const bcdToFloat = (bytes: number[], decimalPlaces: number = 2): number =
   }
   const result = val / Math.pow(10, decimalPlaces);
   return isNaN(result) ? 0 : result;
+};
+
+/**
+ * 특정 타임스탬프를 기준으로 모든 값이 0인 LogEntry 객체 생성
+ */
+const createEmptyEntry = (targetTimestamp: number): LogEntry => {
+  const date = new Date(targetTimestamp);
+  
+  const h = date.getHours().toString().padStart(2, '0');
+  const m = date.getMinutes().toString().padStart(2, '0');
+  const s = date.getSeconds().toString().padStart(2, '0');
+  
+  return {
+    time: `${h}:${m}:${s}`,
+    timestamp: targetTimestamp,
+    airTemp: 0,
+    humidity: 0,
+    skin1Temp: 0,
+    skin2Temp: 0,
+    oxygen: 0,
+    airHtLvl: 0,
+    warmHtLvl: 0,
+    humiHtLvl: 0,
+    airHtPt100: 0,
+    humiHtPt100: 0,
+    warmHtPt100: 0,
+    waterLvl: 0,
+    alarmSeq: 0,
+    alarmCode1: 0,
+    alarmCode2: 0,
+  };
 };
 
 export const parsePacket = (hexList: number[], timeStr: string): LogEntry | null => {
@@ -75,14 +105,35 @@ export const parseLogFile = (content: string, sampleRate: number = 3): LogEntry[
         .map(h => parseInt(h, 16));
 
       const entry = parsePacket(hexBytes, timeStr);
+      
       if (entry && !isNaN(entry.timestamp)) {
+        // --- 누락된 모든 시간 채우기 로직 ---
+        if (results.length > 0) {
+          let lastEntry = results[results.length - 1];
+          
+          // 현재 데이터와 마지막 데이터 사이의 간격이 2000ms(2초) 이상인 동안 반복
+          // 2초 간격으로 빈 데이터를 계속 채워 넣음
+          while (entry.timestamp - lastEntry.timestamp >= 2000) {
+            const nextGapTimestamp = lastEntry.timestamp + 2000;
+            
+            // 만약 새로 생성할 빈 데이터의 시간이 현재 데이터와 같아지면 중단
+            if (nextGapTimestamp >= entry.timestamp) break;
+            
+            const gapEntry = createEmptyEntry(nextGapTimestamp);
+            results.push(gapEntry);
+            lastEntry = gapEntry; // 마지막 데이터를 방금 넣은 데이터로 갱신하여 루프 지속
+          }
+        }
+        // ---------------------------------
+        
         results.push(entry);
       }
     } catch (e) {
-      // Skip malformed lines
+      // 오류 라인 건너뜀
     }
   });
 
+  // 샘플링 비율 적용
   if (sampleRate > 1) {
     return results.filter((_, idx) => idx % sampleRate === 0);
   }

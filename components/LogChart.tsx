@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, memo, useMemo, useEffect, useRef } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer, Tooltip, ReferenceLine
@@ -15,6 +14,7 @@ interface LogChartProps {
   onSettingsChange: (settings: { leftOffset?: number, leftScale?: number, rightOffset?: number, rightScale?: number }) => void;
 }
 
+// --- 보조 컴포넌트: CustomTooltip ---
 const CustomTooltip = ({ active, payload }: any) => {
   useEffect(() => {
     let isMounted = true;
@@ -44,12 +44,30 @@ const cleanLabel = (label: string) => {
   return label || '';
 };
 
+// --- 보조 컴포넌트: RenderCustomLegend (수정됨) ---
 const RenderCustomLegend = (props: any) => {
-  const { payload, onClick, visibility } = props;
+  const { payload, onClick, visibility, onToggleAll } = props;
   if (!payload) return null;
   
   return (
-    <div className="flex flex-wrap justify-center gap-x-6 gap-y-4 pt-6 px-8">
+    <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-4 pt-6 px-8">
+      {/* 일괄 선택/해제 컨트롤 그룹 */}
+      <div className="flex items-center gap-2 pr-6 border-r border-slate-200">
+        <button 
+          onClick={() => onToggleAll(true)}
+          className="text-[10px] font-black text-indigo-600 hover:text-indigo-800 uppercase tracking-tighter bg-indigo-50 px-2 py-1 rounded"
+        >
+          Show All
+        </button>
+        <button 
+          onClick={() => onToggleAll(false)}
+          className="text-[10px] font-black text-slate-400 hover:text-slate-600 uppercase tracking-tighter bg-slate-50 px-2 py-1 rounded"
+        >
+          Hide All
+        </button>
+      </div>
+
+      {/* 개별 범례 아이템 */}
       {payload.map((entry: any, index: number) => {
         const isVisible = visibility[entry.dataKey];
         const displayName = cleanLabel(entry.value);
@@ -82,6 +100,7 @@ const RenderCustomLegend = (props: any) => {
   );
 };
 
+// --- Custom Hook: useContinuousPress ---
 const useContinuousPress = (callback: () => void, onStart?: () => void) => {
   const timeoutRef = useRef<number | null>(null);
   const intervalRef = useRef<number | null>(null);
@@ -131,6 +150,7 @@ const useContinuousPress = (callback: () => void, onStart?: () => void) => {
 
 const STEP = 5;
 
+// --- 메인 컴포넌트: LogChart ---
 const LogChart: React.FC<LogChartProps> = memo(({ 
   data, 
   highlightedTime, 
@@ -181,6 +201,17 @@ const LogChart: React.FC<LogChartProps> = memo(({
     setVisibility(prev => ({ ...prev, [dataKey]: !prev[dataKey] }));
   }, []);
 
+  // --- 추가된 기능: 전체 선택/해제 ---
+  const toggleAllVisibility = useCallback((show: boolean) => {
+    setVisibility(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(key => {
+        next[key as keyof ChartVisibility] = show;
+      });
+      return next;
+    });
+  }, []);
+
   const resetLeft = () => { 
     onSettingsChange({ leftOffset: 0, leftScale: 120 });
     setFocusContext({ channel: 'left', param: 'scale' });
@@ -222,18 +253,18 @@ const LogChart: React.FC<LogChartProps> = memo(({
   }, [focusContext, adjustValue]);
 
   const legendItems = useMemo(() => [
-    { dataKey: 'airTemp', name: 'A_AIR', color: '#ef4444', yAxisId: 'left' },
-    { dataKey: 'airHtLvl', name: 'B_AIR-PWR', color: '#0ea5e9', yAxisId: 'right' },
-    { dataKey: 'airHtPt100', name: 'C_AIR-PT', color: '#d946ef', yAxisId: 'right' },
-    { dataKey: 'humidity', name: 'D_HUMI', color: '#3b82f6', yAxisId: 'right' },
-    { dataKey: 'humiHtLvl', name: 'E_HUMI-PWR', color: '#06b6d4', yAxisId: 'right' },
-    { dataKey: 'humiHtPt100', name: 'F_HUMI-PT', color: '#a855f7', yAxisId: 'right' },
-    { dataKey: 'warmHtLvl', name: 'G_WARM-PWR', color: '#64748b', yAxisId: 'right' },
-    { dataKey: 'warmHtPt100', name: 'H_WARM-PT', color: '#475569', yAxisId: 'right' },
-    { dataKey: 'oxygen', name: 'I_O2', color: '#22c55e', yAxisId: 'left' },
-    { dataKey: 'skin1Temp', name: 'J_SKIN1', color: '#f97316', yAxisId: 'left' },
-    { dataKey: 'skin2Temp', name: 'K_SKIN2', color: '#eab308', yAxisId: 'left' },
-    { dataKey: 'waterLvl', name: 'L_WATER-LVL', color: '#10b981', yAxisId: 'right' },
+    { dataKey: 'airTemp', name: 'A_◂ AIR', color: '#ef4444', yAxisId: 'left' },
+    { dataKey: 'airHtLvl', name: 'B_AIR-PWR ▸', color: '#0ea5e9', yAxisId: 'right' },
+    { dataKey: 'airHtPt100', name: 'C_AIR-PT ▸', color: '#d946ef', yAxisId: 'right' },
+    { dataKey: 'humidity', name: 'D_HUMI ▸', color: '#3b82f6', yAxisId: 'right' },
+    { dataKey: 'humiHtLvl', name: 'E_HUMI-PWR ▸', color: '#06b6d4', yAxisId: 'right' },
+    { dataKey: 'humiHtPt100', name: 'F_HUMI-PT ▸', color: '#a855f7', yAxisId: 'right' },
+    { dataKey: 'warmHtLvl', name: 'G_WARM-PWR ▸', color: '#64748b', yAxisId: 'right' },
+    { dataKey: 'warmHtPt100', name: 'H_WARM-PT ▸', color: '#475569', yAxisId: 'right' },
+    { dataKey: 'oxygen', name: 'I_◂ O2', color: '#22c55e', yAxisId: 'left' },
+    { dataKey: 'skin1Temp', name: 'J_◂ SKIN1', color: '#f97316', yAxisId: 'left' },
+    { dataKey: 'skin2Temp', name: 'K_◂ SKIN2', color: '#eab308', yAxisId: 'left' },
+    { dataKey: 'waterLvl', name: 'L_WATER-LVL ▸', color: '#10b981', yAxisId: 'right' },
   ], []);
 
   const legendPayload = useMemo(() => legendItems.map(item => ({
@@ -258,7 +289,7 @@ const LogChart: React.FC<LogChartProps> = memo(({
 
     return (
       <div className={`flex flex-col items-center gap-2 group rounded-[2rem] p-3 transition-all ${isActive ? 'ring-8 ring-indigo-500/5 bg-indigo-50/50 shadow-md' : ''}`}>
-        <div className={`p-2 rounded-xl bg-gray-50 border border-gray-100 ${colorClass} shadow-sm mb-1`}>{icon}</div>
+        <div className={`p-2 rounded-xl bg-white border border-gray-100 ${colorClass} shadow-sm mb-1`}>{icon}</div>
         <button 
           {...pressUp}
           className="w-12 h-12 flex items-center justify-center bg-white border border-gray-200 rounded-t-2xl hover:bg-gray-50 text-gray-600 transition-colors shadow-sm active:bg-gray-100 outline-none select-none touch-none"
@@ -305,7 +336,7 @@ const LogChart: React.FC<LogChartProps> = memo(({
         </div>
 
         {/* Chart Area */}
-        <div className="flex-1 min-w-0 bg-white relative rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-inner">
+        <div className="flex-1 min-w-0 bg-white relative rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-inner flex flex-col">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 40, right: 20, left: 20, bottom: 15 }}>
               <XAxis 
@@ -320,7 +351,12 @@ const LogChart: React.FC<LogChartProps> = memo(({
               <YAxis yAxisId="right" orientation="right" domain={rightDomain} allowDataOverflow={true} tickCount={11} tick={{ fontSize: 14, fill: '#3b82f6', fontWeight: 'bold' }} stroke="#3b82f6" strokeWidth={2} width={75} />
               <CartesianGrid  yAxisId="left"  strokeDasharray="3 3" stroke="#e2e8f0" vertical={true} horizontal={true} strokeOpacity={0.8} />
               <Tooltip content={<CustomTooltip />} isAnimationActive={false} cursor={{ stroke: '#6366f1', strokeWidth: 2.5, strokeDasharray: '6 6' }} />
-              <Legend content={<RenderCustomLegend visibility={visibility} onClick={toggleVisibility} />} {...({ payload: legendPayload } as any)} />
+              
+              {/* 범례에 onToggleAll 전달 */}
+              <Legend 
+                content={<RenderCustomLegend visibility={visibility} onClick={toggleVisibility} onToggleAll={toggleAllVisibility} />} 
+                {...({ payload: legendPayload } as any)} 
+              />
 
               {highlightedTime && (
                 <ReferenceLine 
@@ -343,10 +379,10 @@ const LogChart: React.FC<LogChartProps> = memo(({
                   stroke={item.color}
                   isAnimationActive={false}
                   dot={false}
-                  connectNulls={true}
+                  connectNulls={false}
                   strokeWidth={item.yAxisId === 'right' && item.dataKey.includes('Ht') ? 2 : 2.5}
                   activeDot={{ r: 6, strokeWidth: 2, fill: '#fff', stroke: '#4f46e5' }}
-                  hide={!visibility[item.dataKey]}
+                  hide={!visibility[item.dataKey as keyof ChartVisibility]}
                 />
               ))}
             </LineChart>
