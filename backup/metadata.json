@@ -1,0 +1,5 @@
+{
+  "name": "Medical Device Log Visualizer",
+  "description": "A high-performance React application for parsing binary medical device logs (BCD format) and visualizing time-series data with dual-axis charts and alarm monitoring.",
+  "requestFramePermissions": []
+}
