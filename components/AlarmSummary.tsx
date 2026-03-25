@@ -1,80 +1,95 @@
 import React from 'react';
 import { LogEntry } from '../types';
-import { toHexString } from '../services/parserService';
 
 interface AlarmSummaryProps {
   data: LogEntry[];
   onAlarmClick: (timestamp: number) => void;
 }
 
+/**
+ * LSB 기반 비트 위치 계산 (MSB->LSB 순서로 1~8번 부여)
+ * 알람 번호 오프셋 적용: (alarmSeq - 1) * 16
+ */
+const getActiveBits = (code1: number, code2: number, alarmSeq: number): number[] => {
+  const activeBits: number[] = [];
+  const offset = (alarmSeq - 1) * 16;
+  
+  // Code1 (Bit 1 ~ 8) + Offset
+  for (let i = 7; i >= 0; i--) {
+    if ((code1 >> i) & 1) activeBits.push((8 - i) + offset);
+  }
+  
+  // Code2 (Bit 9 ~ 16) + Offset
+  for (let i = 7; i >= 0; i--) {
+    if ((code2 >> i) & 1) activeBits.push((16 - i) + offset);
+  }
+  
+  return activeBits;
+};
+
 const AlarmSummary: React.FC<AlarmSummaryProps> = ({ data, onAlarmClick }) => {
   const alarms = React.useMemo(() => {
     const uniqueAlarms: LogEntry[] = [];
-    
-    // 각 Seq별 이전 상태 저장 (초기값 undefined)
     const lastStateMap = new Map<number, number>();
 
     data.forEach(row => {
       if (row.alarmSeq === 0) return;
+      const currentCombined = (row.alarmCode1 << 8) | row.alarmCode2;
+      const lastCombined = lastStateMap.get(row.alarmSeq);
 
-      const currentCodeSum = row.alarmCode1 + row.alarmCode2;
-      const lastCodeSum = lastStateMap.get(row.alarmSeq);
-
-      // 1. 이전 상태 기록이 있고(undefined 아님),
-      // 2. 현재 상태가 이전 상태와 다를 때만 push
-      if (lastCodeSum !== undefined && lastCodeSum !== currentCodeSum) {
+      if (lastCombined !== undefined && lastCombined !== currentCombined) {
         uniqueAlarms.push(row);
       }
-
-      // 현재 상태를 Map에 업데이트 (다음 비교를 위해)
-      lastStateMap.set(row.alarmSeq, currentCodeSum);
+      lastStateMap.set(row.alarmSeq, currentCombined);
     });
 
-    // 시간순 정렬
     return uniqueAlarms.sort((a, b) => a.timestamp - b.timestamp);
   }, [data]);
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm w-full">
-      <div className="flex justify-between items-center mb-2 pb-1 border-b border-gray-100">
-        <h3 className="text-red-600 font-black text-xs uppercase tracking-[0.2em] leading-none">[ ALARM LOG ]</h3>
+      <div className="mb-2 pb-1 border-b border-gray-100">
+        <h3 className="text-indigo-600 font-black text-[13px] uppercase tracking-tighter">
+          [ ALARM LOGS ]
+        </h3>
       </div>
       
-      <div className="font-mono text-[13px] space-y-0.5">
-        {/* 헤더 섹션 */}
-        <div className="grid grid-cols-4 text-gray-400 font-black border-b border-gray-100 py-0.5 mb-0.5 px-1">
-          <span>TIME</span>
-          <span>SEQ</span>
-          <span>CODE1</span>
-          <span>CODE2</span>
-        </div>
-        
-        {/* 리스트 섹션: max-h를 늘리거나 제거하여 전체를 볼 수 있게 조정 가능 */}
-        <div className="max-h-[120px] overflow-y-auto space-y-[3px] custom-scrollbar pr-1">
+      <div className="font-mono text-[13px]">
+        <div className="max-h-[200px] overflow-y-auto space-y-0.5 custom-scrollbar">
           {alarms.length > 0 ? (
             alarms.map((row, i) => {
               const isCleared = row.alarmCode1 === 0 && row.alarmCode2 === 0;
+              const activeBits = getActiveBits(row.alarmCode1, row.alarmCode2, row.alarmSeq);
               
               return (	
                 <button 
                   key={`${row.timestamp}-${row.alarmSeq}-${i}`} 
                   onClick={() => onAlarmClick(row.timestamp)}
-                  className={`grid grid-cols-4 w-full text-left text-[14px] font-bold border-b border-gray-50 py-1 hover:bg-gray-50 transition-all rounded-xl px-3 active:scale-95 group ${
-                    isCleared ? 'text-green-500' : 'text-red-500'
-                  }`}
+                  className="group flex items-center w-full py-1.5 px-2 rounded hover:bg-gray-50 transition-colors text-left border-b border-gray-50 last:border-0"
                 >
-                  <span className="group-hover:translate-x-1 transition-transform text-gray-400 font-medium">
+                  {/* 시간 영역 */}
+                  <span className="text-gray-400 font-medium w-20 shrink-0">
                     {row.time}
                   </span>
-                  <span>{toHexString(row.alarmSeq)}</span>
-                  <span>{toHexString(row.alarmCode1)}</span>
-                  <span>{toHexString(row.alarmCode2)}</span>
+
+                  {/* 알람 번호 영역 */}
+                  <div className="flex flex-wrap items-center gap-1.5 overflow-hidden">
+                    {isCleared ? (
+                      <span className="text-green-500 text-[11px] font-bold">
+                        [ ALARM CLEAR ]
+                      </span>
+                    ) : (
+                      <span className="text-red-500 font-bold">
+                        {activeBits.map(bit => `#${bit}`).join(', ')}
+                      </span>
+                    )}
+                  </div>
                 </button>
               );
             })
           ) : (
-            <div className="py-12 text-center text-gray-300 italic font-black uppercase tracking-widest text-[12px]">
-              System Nominal
+            <div className="py-8 text-center text-gray-300 italic text-[11px]">
+              NO RECORDS
             </div>
           )}
         </div>

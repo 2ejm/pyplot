@@ -1,17 +1,23 @@
-
 import React, { useState, useEffect, memo } from 'react';
 import { LogEntry } from '../types';
 
-const FixedAnnotation: React.FC = () => {
-  const [data, setData] = useState<LogEntry | null>(null);
+interface FixedAnnotationProps {
+  externalData?: LogEntry | null; // 추가
+}
+
+const FixedAnnotation: React.FC<FixedAnnotationProps> = ({ externalData }) => {
+  const [hoverData, setHoverData] = useState<LogEntry | null>(null);
 
   useEffect(() => {
     const handleHover = (e: any) => {
-      setData(e.detail);
+      setHoverData(e.detail);
     };
     window.addEventListener('chart-hover', handleHover);
     return () => window.removeEventListener('chart-hover', handleHover);
   }, []);
+
+  // 외부 데이터(알람 클릭)가 있으면 우선시하고, 없으면 호버 데이터를 보여줌
+  const data = hoverData || externalData;
 
   if (!data) {
     return (
@@ -21,6 +27,7 @@ const FixedAnnotation: React.FC = () => {
     );
   }
 
+  // Row 컴포넌트는 그대로 유지
   const Row = ({ label, value, unit = "", color = "text-gray-900" }: { label: string, value: number | string, unit?: string, color?: string }) => (
     <div className="flex justify-between items-center gap-8 py-1.5 border-b border-gray-50 last:border-0 transition-colors">
       <span className={`text-[13px] font-black uppercase tracking-widest leading-none ${color}`}>{label}</span>
@@ -31,9 +38,11 @@ const FixedAnnotation: React.FC = () => {
   );
 
   return (
-    <div className="bg-white border border-gray-200 p-3 rounded-xl w-full transition-all">
+    <div className={`bg-white border p-3 rounded-xl w-full transition-all ${externalData ? 'border-indigo-500 ring-2 ring-indigo-500/10' : 'border-gray-200'}`}>
       <div className="flex justify-between items-center mb-2 pb-1 border-b border-gray-100">
-        <span className="text-[14px] font-black text-indigo-600 uppercase tracking-[0.2em] leading-none">[ READOUT ]</span>
+        <span className="text-[14px] font-black text-indigo-600 uppercase tracking-[0.2em] leading-none">
+          {'[ READOUT ]'}
+        </span>
         <span className="text-[14px] font-black font-bold text-gray-600">
           {new Date(data.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
         </span>
