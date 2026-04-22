@@ -15,9 +15,12 @@ interface LogChartProps {
   ticks?: number[];
 }
 
+<<<<<<< HEAD
 
 
 
+=======
+>>>>>>> c4a66415263fa8c7b18cf50f4aa83a12e3a60a47
 // --- 보조 컴포넌트: CustomTooltip ---
 const CustomTooltip = ({ active, payload }: any) => {
   useEffect(() => {
@@ -48,17 +51,41 @@ const cleanLabel = (label: string) => {
   return label || '';
 };
 
+<<<<<<< HEAD
 // --- 보조 컴포넌트: RenderCustomLegend ---
+=======
+// --- 보조 컴포넌트: RenderCustomLegend (수정됨) ---
+>>>>>>> c4a66415263fa8c7b18cf50f4aa83a12e3a60a47
 const RenderCustomLegend = (props: any) => {
   const { payload, onClick, visibility, onToggleAll } = props;
   if (!payload) return null;
   
   return (
     <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-4 pt-6 px-8">
+<<<<<<< HEAD
       <div className="flex items-center gap-2 pr-6 border-r border-slate-200">
         <button onClick={() => onToggleAll(true)} className="text-[10px] font-black text-indigo-600 hover:text-indigo-800 uppercase tracking-tighter bg-indigo-50 px-2 py-1 rounded">Show All</button>
         <button onClick={() => onToggleAll(false)} className="text-[10px] font-black text-slate-400 hover:text-slate-600 uppercase tracking-tighter bg-slate-50 px-2 py-1 rounded">Hide All</button>
       </div>
+=======
+      {/* 일괄 선택/해제 컨트롤 그룹 */}
+      <div className="flex items-center gap-2 pr-6 border-r border-slate-200">
+        <button 
+          onClick={() => onToggleAll(true)}
+          className="text-[10px] font-black text-indigo-600 hover:text-indigo-800 uppercase tracking-tighter bg-indigo-50 px-2 py-1 rounded"
+        >
+          Show All
+        </button>
+        <button 
+          onClick={() => onToggleAll(false)}
+          className="text-[10px] font-black text-slate-400 hover:text-slate-600 uppercase tracking-tighter bg-slate-50 px-2 py-1 rounded"
+        >
+          Hide All
+        </button>
+      </div>
+
+      {/* 개별 범례 아이템 */}
+>>>>>>> c4a66415263fa8c7b18cf50f4aa83a12e3a60a47
       {payload.map((entry: any, index: number) => {
         const isVisible = visibility[entry.dataKey];
         const displayName = cleanLabel(entry.value);
@@ -129,6 +156,29 @@ const LogChart: React.FC<LogChartProps> = memo(({
     });
   }, []);
 
+<<<<<<< HEAD
+=======
+  // --- 추가된 기능: 전체 선택/해제 ---
+  const toggleAllVisibility = useCallback((show: boolean) => {
+    setVisibility(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(key => {
+        next[key as keyof ChartVisibility] = show;
+      });
+      return next;
+    });
+  }, []);
+
+  const resetLeft = () => { 
+    onSettingsChange({ leftOffset: 0, leftScale: 120 });
+    setFocusContext({ channel: 'left', param: 'scale' });
+  };
+  const resetRight = () => { 
+    onSettingsChange({ rightOffset: 0, rightScale: 120 });
+    setFocusContext({ channel: 'right', param: 'scale' });
+  };
+
+>>>>>>> c4a66415263fa8c7b18cf50f4aa83a12e3a60a47
   const adjustValue = useCallback((channel: 'left' | 'right', param: 'scale' | 'offset', direction: 1 | -1) => {
     const step = STEP;
     if (channel === 'left') {
@@ -218,7 +268,16 @@ const handleChartClick = useCallback((nextState: any) => {
     return (
       <div className={`flex flex-col items-center gap-2 group rounded-[2rem] p-3 transition-all ${isActive ? 'ring-8 ring-indigo-500/5 bg-indigo-50/50 shadow-md' : ''}`}>
         <div className={`p-2 rounded-xl bg-white border border-gray-100 ${colorClass} shadow-sm mb-1`}>{icon}</div>
+<<<<<<< HEAD
         <button {...pressUp} className="w-12 h-12 flex items-center justify-center bg-white border border-gray-200 rounded-t-2xl hover:bg-gray-50 text-gray-600 transition-colors shadow-sm active:bg-gray-100 outline-none select-none touch-none"><svg className="w-6 h-6 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 15l7-7 7 7" /></svg></button>
+=======
+        <button 
+          {...pressUp}
+          className="w-12 h-12 flex items-center justify-center bg-white border border-gray-200 rounded-t-2xl hover:bg-gray-50 text-gray-600 transition-colors shadow-sm active:bg-gray-100 outline-none select-none touch-none"
+        >
+          <svg className="w-6 h-6 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 15l7-7 7 7" /></svg>
+        </button>
+>>>>>>> c4a66415263fa8c7b18cf50f4aa83a12e3a60a47
         <div className="w-20 h-16 flex flex-col items-center justify-center bg-gray-50 border-x border-gray-200 py-1">
           <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1.5">{label}</span>
           <span className={`text-[15px] font-mono font-black ${colorClass} leading-none`}>{Math.round(value)}</span>
@@ -238,29 +297,32 @@ const handleChartClick = useCallback((nextState: any) => {
           <button onClick={() => onSettingsChange({ leftOffset: 0, leftScale: 120 })} className="mt-2 w-20 py-2 bg-gray-200 hover:bg-red-500 hover:text-white text-gray-500 rounded-xl text-[10px] font-black uppercase transition-all shadow-sm active:scale-95">RESET</button>
         </div>
 
+<<<<<<< HEAD
         <div className="flex-1 min-w-0 bg-white relative rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-inner flex flex-col mx-auto">
+=======
+        {/* Chart Area */}
+        <div className="flex-1 min-w-0 bg-white relative rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-inner flex flex-col">
+>>>>>>> c4a66415263fa8c7b18cf50f4aa83a12e3a60a47
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 40, right: 20, left: 20, bottom: 15 }} onMouseDown={handleChartClick}>
               <XAxis type="number" dataKey="timestamp" ticks={ticks} domain={['dataMin', 'dataMax']} tickFormatter={formatXAxis} tick={{ fontSize: 13, fill: '#64748b', fontWeight: 'bold' }} stroke="#cbd5e1" />
               <YAxis yAxisId="left" domain={leftDomain} allowDataOverflow={true} tickCount={11} tick={{ fontSize: 14, fill: '#ef4444', fontWeight: 'bold' }} stroke="#ef4444" strokeWidth={2} width={75} />
               <YAxis yAxisId="right" orientation="right" domain={rightDomain} allowDataOverflow={true} tickCount={11} tick={{ fontSize: 14, fill: '#3b82f6', fontWeight: 'bold' }} stroke="#3b82f6" strokeWidth={2} width={75} />
+<<<<<<< HEAD
               <CartesianGrid yAxisId="left" strokeDasharray="3 3" stroke="#6f7275" vertical={true} horizontal={true} strokeOpacity={0.8} />
               <Tooltip content={<CustomTooltip />} isAnimationActive={false}  wrapperStyle={{ pointerEvents: 'none' }} cursor={{ stroke: '#6366f1', strokeWidth: 2.5, strokeDasharray: '6 6' }} />
               
               <Legend content={<RenderCustomLegend visibility={visibility} onClick={toggleVisibility} onToggleAll={toggleAllVisibility} />} {...({ payload: legendPayload } as any)} />
-
-              {/* [추가] CH-L 기준 Y=0 수평선 */}
-              {isZeroRefVisible && (
-                <ReferenceLine 
-                  yAxisId="left" 
-                  y={clickedYValue} 
-                  stroke="#ef4444" 
-                  strokeWidth={3}        /* 선 두께 */
-    /* strokeDasharray="4 4" <- 이 부분을 삭제하거나 주석 처리하면 직선이 됩니다. */
-  		  isFront={true}
-                  label={{ position: 'right', fill: '#ef4444', fontSize: 12, fontWeight: 'bold' }} 
-                />
-              )}
+=======
+              <CartesianGrid  yAxisId="left"  strokeDasharray="3 3" stroke="#e2e8f0" vertical={true} horizontal={true} strokeOpacity={0.8} />
+              <Tooltip content={<CustomTooltip />} isAnimationActive={false} cursor={{ stroke: '#6366f1', strokeWidth: 2.5, strokeDasharray: '6 6' }} />
+              
+              {/* 범례에 onToggleAll 전달 */}
+              <Legend 
+                content={<RenderCustomLegend visibility={visibility} onClick={toggleVisibility} onToggleAll={toggleAllVisibility} />} 
+                {...({ payload: legendPayload } as any)} 
+              />
+>>>>>>> c4a66415263fa8c7b18cf50f4aa83a12e3a60a47
               
 
               {highlightedTime && (
@@ -268,7 +330,24 @@ const handleChartClick = useCallback((nextState: any) => {
               )}
 
               {legendItems.map(item => (
+<<<<<<< HEAD
                 <Line key={item.dataKey} yAxisId={item.yAxisId} type="monotone" dataKey={item.dataKey} name={item.name} stroke={item.color} isAnimationActive={false} dot={false} connectNulls={false} strokeWidth={item.yAxisId === 'right' && item.dataKey.includes('Ht') ? 2 : 2.5} activeDot={{ r: 6, strokeWidth: 2, fill: '#fff', stroke: '#4f46e5' }} hide={!visibility[item.dataKey as keyof ChartVisibility]} />
+=======
+                <Line
+                  key={item.dataKey}
+                  yAxisId={item.yAxisId}
+                  type="monotone"
+                  dataKey={item.dataKey}
+                  name={item.name}
+                  stroke={item.color}
+                  isAnimationActive={false}
+                  dot={false}
+                  connectNulls={false}
+                  strokeWidth={item.yAxisId === 'right' && item.dataKey.includes('Ht') ? 2 : 2.5}
+                  activeDot={{ r: 6, strokeWidth: 2, fill: '#fff', stroke: '#4f46e5' }}
+                  hide={!visibility[item.dataKey as keyof ChartVisibility]}
+                />
+>>>>>>> c4a66415263fa8c7b18cf50f4aa83a12e3a60a47
               ))}
             </LineChart>
           </ResponsiveContainer>

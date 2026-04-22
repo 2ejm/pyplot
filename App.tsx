@@ -70,68 +70,6 @@ const App: React.FC = () => {
   }, [duration, timeBoundaries]);
 
 
-const handleExportAll = async () => {
-  const filesToExport = sourceType === 'drive' ? availableDriveFiles : availableLocalFiles;
-  if (filesToExport.length === 0) return;
-
-  try {
-    setLoading(true);
-    
-    for (const file of filesToExport) {
-      // 1. 데이터 로드 및 파싱
-      let content = "";
-      let name = "";
-
-      if (sourceType === 'drive') {
-        const response = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' });
-        content = response.body;
-        name = file.name;
-      } else {
-        content = await (file as File).text();
-        name = (file as File).name;
-      }
-
-      const parsed = parseLogFile(content, LOAD_TIME_SAMPLE_RATE);
-      
-      // 2. 상태 업데이트 (UI에 해당 파일 데이터가 그려짐)
-      setAllData(parsed);
-      setFileName(name);
-      if (parsed.length > 0) setStartTime(parsed[0].timestamp);
-
-      // 3. 리액트가 DOM을 리렌더링할 시간을 줍니다 (중요!)
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // 4. 캡처 실행 (기존 로직 재사용)
-      if (chartOnlyRef.current) {
-        const canvas = await html2canvas(chartOnlyRef.current, {
-        backgroundColor: '#ffffff', // 배경을 흰색으로 강제 (투명 방지)
-        scale: 2,
-        logging: false,
-        // 만약 특정 클래스(.no-export)를 가진 요소를 제외하고 싶다면 아래 옵션 사용 가능
-        onclone: (clonedDoc) => {
-  // 1. 제외 요소 숨기기
-  clonedDoc.querySelectorAll('.no-export').forEach(el => {
-    (el as HTMLElement).style.visibility = 'hidden';
-    
-  });
-
-  const container = clonedDoc.querySelector('[ref="chartOnlyRef"]') as HTMLElement; 
-}
-      });
-        const image = canvas.toDataURL("image/png");
-        const link = document.createElement("a");
-        link.href = image;
-        link.download = `CHART_${name}_${new Date().getTime()}.png`;
-        link.click();
-      }
-    }
-  } catch (err) {
-    setErrorInfo("Failed to export some charts.");
-  } finally {
-    setLoading(false);
-  }
-};
-
 
   const handleDownloadChart = async () => {
     if (!chartOnlyRef.current) return;
@@ -139,20 +77,14 @@ const handleExportAll = async () => {
     try {
       setLoading(true);
       
+      // html2canvas 옵션: 그래프 외곽의 여백이나 버튼을 제외하고 
+      // 딱 chartOnlyRef가 감싸는 영역만 캡처합니다.
       const canvas = await html2canvas(chartOnlyRef.current, {
         backgroundColor: '#ffffff', // 배경을 흰색으로 강제 (투명 방지)
         scale: 2,
         logging: false,
         // 만약 특정 클래스(.no-export)를 가진 요소를 제외하고 싶다면 아래 옵션 사용 가능
-        onclone: (clonedDoc) => {
-  // 1. 제외 요소 숨기기
-  clonedDoc.querySelectorAll('.no-export').forEach(el => {
-    (el as HTMLElement).style.visibility = 'hidden';
-    
-  });
-
-  const container = clonedDoc.querySelector('[ref="chartOnlyRef"]') as HTMLElement; 
-}
+        ignoreElements: (element) => element.classList.contains('no-export')
       });
       
       const image = canvas.toDataURL("image/png");
@@ -166,22 +98,6 @@ const handleExportAll = async () => {
       setLoading(false);
     }
   };
-  
-  const visibleTicks = useMemo(() => {
-  if (allData.length === 0) return [];
-
-  const tickCount = 5; // 표시하고 싶은 눈금 개수 (예: 시작, 중간3, 끝)
-  const step = duration / (tickCount - 1);
-  const ticks = [];
-
-  for (let i = 0; i < tickCount; i++) {
-    const tickTime = startTime + step * i;
-    // 차트 라이브러리 형식에 맞춰 timestamp 혹은 포맷팅된 문자열 반환
-    ticks.push(tickTime); 
-  }
-
-  return ticks;
-}, [startTime, duration, allData.length]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -192,13 +108,6 @@ const handleExportAll = async () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [allData.length, scrollBy]);
-  
-  // 1. Duration 변경 시 시작 시간을 데이터의 처음으로 리셋
-useEffect(() => {
-  if (allData.length > 0) {
-    setStartTime(timeBoundaries.min);
-  }
-}, [duration, timeBoundaries.min]); // allData는 timeBoundaries.min이 의존성으로 잡혀있으므로 생략 가능합니다.
 
   const jumpToTime = (timeStr: string) => {
     if (!timeStr || allData.length === 0) return;
@@ -216,7 +125,7 @@ useEffect(() => {
     } catch (e) {}
   };
 
-  // --- Google API Logic  ---
+  // --- Google API Logic (생략/유지) ---
   const initializeGoogleApi = useCallback(async () => {
     setErrorInfo(null);
     setApiReady(false);
@@ -379,16 +288,10 @@ useEffect(() => {
   const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); dragCounter.current++; if (e.dataTransfer.items?.length > 0) setIsDragging(true); };
   const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); dragCounter.current--; if (dragCounter.current === 0) setIsDragging(false); };
   const handleDrop = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); dragCounter.current = 0; if (e.dataTransfer.files?.length > 0) handleFilesAdded(Array.from(e.dataTransfer.files)); };
-  
-  const [selectedEntry, setSelectedEntry] = useState<LogEntry | null>(null);
 
   const handleAlarmJump = (timestamp: number) => {
     if (isNaN(timestamp)) return;
     setHighlightedTime(timestamp);
-    
-    const entry = allData.find(d => d.timestamp === timestamp);
-  if (entry) setSelectedEntry(entry);
-    
     const centerStart = timestamp - (duration / 2);
     setStartTime(Math.min(Math.max(centerStart, timeBoundaries.min), timeBoundaries.max));
   };
@@ -449,12 +352,10 @@ useEffect(() => {
             <h1 className="text-xl font-black text-gray-900 tracking-tight leading-none uppercase">MED-ANALYZER</h1>
           </div>
         </div>
-        
 
         <div className="flex items-center gap-4">
           {/* 다운로드 버튼 추가 */}
           {allData.length > 0 && (
-          <>
             <button 
               onClick={handleDownloadChart}
               className="px-5 py-3 bg-emerald-600 text-white rounded-2xl text-xs font-black transition-all shadow-md hover:bg-emerald-700 active:scale-95 uppercase tracking-widest flex items-center gap-2"
@@ -462,21 +363,7 @@ useEffect(() => {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               Export Chart
             </button>
-		      {/* 전체 저장 버튼 추가 */}
-      <button 
-        onClick={handleExportAll}
-        className="px-5 py-3 bg-slate-800 text-white rounded-2xl text-xs font-black transition-all shadow-md hover:bg-slate-900 active:scale-95 uppercase tracking-widest flex items-center gap-2"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-        </svg>
-        Export All ({sourceType === 'drive' ? availableDriveFiles.length : availableLocalFiles.length})
-      </button>
-    </>      
-         
           )}
-          
-          
 
           <button onClick={handleDriveClick} className="px-6 py-3 bg-white text-gray-700 border border-gray-200 rounded-2xl text-xs font-black transition-all shadow-sm uppercase tracking-widest flex items-center gap-3 hover:bg-gray-50 active:scale-95">
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor"><path d="M15.75 14.25L10.5 5.25L5.25 14.25H15.75ZM22.5 14.25H18.75L13.5 5.25H17.25L22.5 14.25ZM9.75 18.75H14.25L19.5 9.75L15 9.75L9.75 18.75ZM1.5 14.25L6.75 5.25H10.5L5.25 14.25H1.5ZM4.5 18.75H9L13.5 9.75H9L4.5 18.75ZM15 18.75H19.5L22.5 14.25H18L15 18.75Z"/></svg>
@@ -520,7 +407,6 @@ useEffect(() => {
                 <div ref={chartOnlyRef} className="flex-1 min-h-0">
                   <LogChart 
                     data={visibleData} 
-                    ticks={visibleTicks}
                     highlightedTime={highlightedTime}
                     leftOffset={leftOffset}
                     leftScale={leftScale}
@@ -593,7 +479,7 @@ useEffect(() => {
             
             <div className="lg:w-80 flex flex-col gap-2 flex-shrink-0 overflow-y-auto pr-2 custom-scrollbar pb-6">
               <AlarmSummary data={allData} onAlarmClick={handleAlarmJump} />
-              <FixedAnnotation externalData={selectedEntry} />
+              <FixedAnnotation />
               <SidebarFileList 
                 driveFiles={availableDriveFiles} 
                 localFiles={availableLocalFiles} 
