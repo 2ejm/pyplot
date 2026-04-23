@@ -19,7 +19,6 @@ export const bcdToFloat = (bytes: number[], decimalPlaces: number = 2): number =
  */
 const createEmptyEntry = (targetTimestamp: number): LogEntry => {
   const date = new Date(targetTimestamp);
-  
   const h = date.getHours().toString().padStart(2, '0');
   const m = date.getMinutes().toString().padStart(2, '0');
   const s = date.getSeconds().toString().padStart(2, '0');
@@ -42,10 +41,31 @@ const createEmptyEntry = (targetTimestamp: number): LogEntry => {
     alarmSeq: 0,
     alarmCode1: 0,
     alarmCode2: 0,
+    tempSetting: 0,
+    humiSetting: 0,
   };
 };
 
-export const parsePacket = (hexList: number[], timeStr: string): LogEntry | null => {
+/**
+ * TX 데이터 파싱
+ */
+const parseTX = (hexBytes: number[]) => {
+  // 인덱스 6,7: 온도 / 인덱스 9,10: 습도 (전달해주신 로직 기준)
+  const tempSetting = bcdToFloat(hexBytes.slice(6, 8), 2);
+  const humiSetting = bcdToFloat(hexBytes.slice(9, 11), 2);
+  
+  // [DEBUG] TX 파싱 상세 결과 확인
+  console.debug(`[TX Parser] Raw: ${hexBytes.slice(6, 11).join(', ')} -> Temp: ${tempSetting}, Humi: ${humiSetting}`);
+  
+  return { tempSetting, humiSetting };
+};
+
+export const parsePacket = (
+  hexList: number[], 
+  timeStr: string, 
+  recentTemp: number, 
+  recentHumi: number
+): LogEntry | null => {
   try {
     if (!hexList || hexList.length < 40 || !timeStr) return null;
 
@@ -76,26 +96,47 @@ export const parsePacket = (hexList: number[], timeStr: string): LogEntry | null
       alarmSeq: hexList[33] || 0,
       alarmCode1: hexList[34] || 0,
       alarmCode2: hexList[35] || 0,
+      tempSetting: recentTemp,
+      humiSetting: recentHumi,
     };
   } catch (e) {
     return null;
   }
 };
 
-
-/*
- 	샘플레이트 0 옵션 추가 03/18 필요
-*/
 export const parseLogFile = (content: string, sampleRate: number = 3): LogEntry[] => {
   if (!content) return [];
   const lines = content.split('\n');
   const results: LogEntry[] = [];
   
-  lines.forEach((line) => {
+  // 상태 유지를 위한 변수 초기화
+  let recentSetTemp = 0;
+  let recentSetHumi = 0;
+
+  lines.forEach((line, index) => {
     const trimmed = line.trim();
-    if (!trimmed || !trimmed.includes(',"')) return;
+    if (!trimmed) return;
 
     try {
+      // --- TX 데이터 처리 영역 ---
+      if (trimmed.includes('TX: "')) {
+        const parts = trimmed.split('TX: "');
+        const timeStr = parts[0].replace(',', '').trim();
+        let rawData = parts[1].split('"')[0];
+        const hexBytes = rawData.split(',').map(h => parseInt(h, 16));
+        
+        const settings = parseTX(hexBytes);
+        recentSetTemp = settings.tempSetting;
+        recentSetHumi = settings.humiSetting;
+        
+        // [DEBUG] TX 업데이트 로그
+        console.log(`[Line ${index}] Setting Updated at ${timeStr} -> T: ${recentSetTemp}, H: ${recentSetHumi}`);
+        return; 
+      }
+      // -----------------------
+
+      if (!trimmed.includes(',"')) return;
+
       const parts = trimmed.split(',"');
       const timeStr = parts[0];
       let rawData = parts[1].trim();
@@ -108,43 +149,33 @@ export const parseLogFile = (content: string, sampleRate: number = 3): LogEntry[
         .filter(h => h.trim() !== '')
         .map(h => parseInt(h, 16));
 
-      const entry = parsePacket(hexBytes, timeStr);
+      const entry = parsePacket(hexBytes, timeStr, recentSetTemp, recentSetHumi);
       
       if (entry && !isNaN(entry.timestamp)) {
-        // --- 누락된 모든 시간 채우기 로직 ---
         if (results.length > 0) {
           let lastEntry = results[results.length - 1];
-          
-          // 현재 데이터와 마지막 데이터 사이의 간격이 2000ms(2초) 이상인 동안 반복
-          // 2초 간격으로 빈 데이터를 계속 채워 넣음
           while (entry.timestamp - lastEntry.timestamp >= 2000) {
             const nextGapTimestamp = lastEntry.timestamp + 2000;
-            
-            // 만약 새로 생성할 빈 데이터의 시간이 현재 데이터와 같아지면 중단
             if (nextGapTimestamp >= entry.timestamp) break;
             
             const gapEntry = createEmptyEntry(nextGapTimestamp);
+            // 빈 데이터 채울 때도 최신 설정값 유지
+            gapEntry.tempSetting = recentSetTemp;
+            gapEntry.humiSetting = recentSetHumi;
+            
             results.push(gapEntry);
-            lastEntry = gapEntry; // 마지막 데이터를 방금 넣은 데이터로 갱신하여 루프 지속
+            lastEntry = gapEntry;
           }
         }
-        // ---------------------------------
-        
         results.push(entry);
       }
     } catch (e) {
-      // 오류 라인 건너뜀
+      console.error(`Error parsing line ${index}:`, e);
     }
   });
 
-  // 샘플링 비율 적용
   if (sampleRate > 1) {
     return results.filter((_, idx) => idx % sampleRate === 0);
   }
   return results;
-};
-
-export const toHexString = (val: number) => {
-  const n = typeof val === 'number' ? val : 0;
-  return `0x${n.toString(16).toUpperCase().padStart(2, '0')}`;
 };
