@@ -16,12 +16,12 @@ const getActiveBits = (code1: number, code2: number, alarmSeq: number): number[]
   
   // Code1 (Bit 1 ~ 8) + Offset
   for (let i = 7; i >= 0; i--) {
-    if ((code1 >> i) & 1) activeBits.push((8 - i) + offset);
+    if ((code1 >> i) & 1) activeBits.push((i + 9) + offset);
   }
   
   // Code2 (Bit 9 ~ 16) + Offset
   for (let i = 7; i >= 0; i--) {
-    if ((code2 >> i) & 1) activeBits.push((16 - i) + offset);
+    if ((code2 >> i) & 1) activeBits.push((i + 1) + offset);
   }
   
   return activeBits;
