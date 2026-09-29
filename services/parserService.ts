@@ -103,7 +103,7 @@ export const parsePacket = (
   }
 };
 
-export const parseLogFile = (content: string, sampleRate: number = 3): LogEntry[] => {
+export const parseLogFile = (content: string, sampleRate: number = 1): LogEntry[] => {
   if (!content) return [];
   const lines = content.split('\n');
   
@@ -163,7 +163,8 @@ export const parseLogFile = (content: string, sampleRate: number = 3): LogEntry[
       
       if (entry && !isNaN(entry.timestamp)) {
         // 초 단위 이하(밀리초) 단차를 없애기 위해 2초 단위 정렬 타임스탬프 계산
-        const roundedTs = Math.floor(entry.timestamp / 2000) * 2000;
+        const roundedTs = Math.floor(entry.timestamp / 1000) * 1000;
+        //const roundedTs = Math.floor(entry.timestamp / 2000) * 2000;
         entry.timestamp = roundedTs;
         parsedMap.set(roundedTs, entry);
       }
@@ -176,7 +177,7 @@ export const parseLogFile = (content: string, sampleRate: number = 3): LogEntry[
   const fullResults: LogEntry[] = [];
   const startTs = new Date(2022, 1, 21, 0, 0, 0).getTime();
   const endTs = new Date(2022, 1, 21, 23, 59, 58).getTime();
-  const INTERVAL = 2000; // 2초 (2000ms)
+  const INTERVAL = 1000; // 2초 (2000ms)
 
   // 빈 데이터를 채울 때 사용할 유효 TX 세팅 추적용 index
   let currentTxIdx = 0;
