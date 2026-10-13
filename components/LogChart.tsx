@@ -167,7 +167,7 @@ const LogChart: React.FC<LogChartProps> = memo(({
   const legendItems = useMemo(() => [
     { dataKey: 'airTemp', name: 'A_◂ AIR', color: '#ef4444', yAxisId: 'left' },
     { dataKey: 'tempSetting', name: 'SET_◂ TEMP', color: '#f87171', yAxisId: 'left', isDash: true },
-    { dataKey: 'airHtLvl', name: 'B_AIR-PWR ▸', color: '#0ea5e9', yAxisId: 'right' },
+    { dataKey: 'airHtLvl', name: 'B_AIR-PWR ▸', color: '#e90eb2', yAxisId: 'right' },
     { dataKey: 'airHtPt100', name: 'C_AIR-PT ▸', color: '#d946ef', yAxisId: 'right' },
     { dataKey: 'humidity', name: 'D_HUMI ▸', color: '#3b82f6', yAxisId: 'right' },
     { dataKey: 'humiSetting', name: 'SET_HUMI ▸', color: '#60a5fa', yAxisId: 'right', isDash: true },
