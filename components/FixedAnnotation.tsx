@@ -63,6 +63,9 @@ const FixedAnnotation: React.FC<FixedAnnotationProps> = ({ externalData }) => {
         <Row label="TEMP. SENSOR #1" value={data.skin1Temp} unit="℃" color="text-orange-600" />
         <Row label="TEMP. SENSOR #2" value={data.skin2Temp} unit="℃" color="text-amber-600" />
         <Row label="WATER LEVEL" value={data.waterLvl} color="text-green-700" />
+        
+        <Row label="TEMP setting" value={data.tempSetting} unit="℃" color="text-indigo-600" />
+  	<Row label="HUMI setting" value={data.humiSetting} unit="%" color="text-violet-600" />
       </div>
     </div>
   );
