@@ -147,6 +147,47 @@ const LogChart: React.FC<LogChartProps> = memo(({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [focusContext, adjustValue]);
   
+  // 2. 130 초과 포인트 전용 커스텀 dot 렌더러
+const renderPt100OverDot = useCallback((color: string) => (dotProps: any) => {
+  const { cx, cy, value, index } = dotProps;
+  const numVal = typeof value === 'number' ? value : Number(value);
+
+  if (
+    cx === undefined ||
+    cy === undefined ||
+    Number.isNaN(cx) ||
+    Number.isNaN(cy) ||
+    Number.isNaN(numVal) ||
+    numVal <= 130
+  ) {
+    return null;
+  }
+
+  return (
+    <g key={`pt100-over-${index}`} className="pointer-events-none">
+      {/* 외곽 강조 링 */}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={8}
+        fill="#ef4444"
+        fillOpacity={0.22}
+        stroke="#ef4444"
+        strokeWidth={1.5}
+      />
+      {/* 중심 마커 */}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={4.5}
+        fill="#ef4444"
+        stroke="#ffffff"
+        strokeWidth={1.5}
+      />
+    </g>
+  );
+}, []);
+  
   const handleChartClick = useCallback((nextState: any) => {
     if (nextState && (nextState.activePayload || nextState.activeCoordinate)) {
       setIsZeroRefVisible(prev => !prev);
@@ -168,11 +209,11 @@ const LogChart: React.FC<LogChartProps> = memo(({
     { dataKey: 'airTemp', name: 'A_◂ AIR', color: '#ef4444', yAxisId: 'left' },
     { dataKey: 'tempSetting', name: 'SET_◂ TEMP', color: '#f87171', yAxisId: 'left', isDash: true },
     { dataKey: 'airHtLvl', name: 'B_AIR-PWR ▸', color: '#e90eb2', yAxisId: 'right' },
-    { dataKey: 'airHtPt100', name: 'C_AIR-PT ▸', color: '#d946ef', yAxisId: 'right' },
+    { dataKey: 'airHtPt100', name: 'C_AIR-PT ▸', color: '#d946ef', yAxisId: 'right' , isPt100: true} ,
     { dataKey: 'humidity', name: 'D_HUMI ▸', color: '#3b82f6', yAxisId: 'right' },
     { dataKey: 'humiSetting', name: 'SET_HUMI ▸', color: '#60a5fa', yAxisId: 'right', isDash: true },
     { dataKey: 'humiHtLvl', name: 'E_HUMI-PWR ▸', color: '#06b6d4', yAxisId: 'right' },
-    { dataKey: 'humiHtPt100', name: 'F_HUMI-PT ▸', color: '#a855f7', yAxisId: 'right' },
+    { dataKey: 'humiHtPt100', name: 'F_HUMI-PT ▸', color: '#a855f7', yAxisId: 'right' , isPt100: true},
     { dataKey: 'warmHtLvl', name: 'G_WARM-PWR ▸', color: '#64748b', yAxisId: 'right' },
     { dataKey: 'warmHtPt100', name: 'H_WARM-PT ▸', color: '#475569', yAxisId: 'right' },
     { dataKey: 'oxygen', name: 'I_◂ O2', color: '#22c55e', yAxisId: 'left' },
@@ -243,7 +284,7 @@ const LogChart: React.FC<LogChartProps> = memo(({
                   name={item.name} 
                   stroke={item.color} 
                   isAnimationActive={false} 
-                  dot={false} 
+                  dot={item.isPt100 ? renderPt100OverDot(item.color) : false}
                   connectNulls={true}
                   strokeWidth={item.isDash ? 2 : (item.yAxisId === 'right' && item.dataKey.includes('Ht') ? 2 : 2.5)} 
                   strokeDasharray={item.isDash ? "5 5" : undefined}
